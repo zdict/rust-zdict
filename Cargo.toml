@@ -23,3 +23,4 @@ description = "Look up words via online dictionaries"
 #repository = ""
 
 [dependencies]
+clap = { version = "3.0.0-beta.4", features = ["yaml"] }
