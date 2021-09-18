@@ -1,4 +1,46 @@
 name: zdict
-#version: "0.1"
-#author: Apua
-#about: zdict rewrite
+setting: [ColoredHelp]  #, ArgRequiredElseHelp]
+args:
+
+# FLAGS: (clap default provides)
+#     -h, --help       Print help information
+#     -V, --version    Print version information
+
+- words:
+    about: Search translation of words
+    required: true
+    multiple_values: true
+
+- show provider:
+    long: show-provider
+    about: Show dictionary provider
+
+- show url:
+    long: show-url
+    about: Show URL
+
+- dict:
+    long: dict
+    about: Choose the dictionary
+    possible_values: [all, yahoo]
+    default_value: yahoo  # NOTE: ArgRequiredElseHelp not effect due to default value
+    multiple_occurrences: true
+
+- list dicts:  # should be subcommand
+    long: list-dicts
+    about: Show currently supported dictionaries
+
+- verbose:
+    short: v
+    long: verbose
+    about: Use verbose output
+    multiple_occurrences: true
+    # max_occurrences: 2  # not work
+
+# Not support:
+#
+# - history: origin is ``--dump``
+# - jobs: see also ``cargo build --help``
+# - disable_db_cache:
+# - query_timeout:
+# - force_color:
