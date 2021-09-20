@@ -1,6 +1,55 @@
 use clap::{load_yaml, App};
+use clap::{Clap, AppSettings};
+
+#[derive(Clap, Debug)]
+#[clap(
+    name = "zdict",
+    //version = env!("CARGO_PKG_VERSION"),
+    //settings = &[AppSettings::ColoredHelp],  // not support yet
+    setting = AppSettings::ColoredHelp,
+    //setting = AppSettings::ArgRequiredElseHelp,  // no effect due to required args exit
+    setting = AppSettings::DisableVersionForSubcommands,
+    setting = AppSettings::DisableHelpSubcommand,
+    setting = AppSettings::ArgsNegateSubcommands,  // no effect yet
+    setting = AppSettings::SubcommandsNegateReqs,
+)]
+struct Opts {
+    #[clap(about = "Search translation of words")]
+    #[clap(required = true)]
+    word: Vec<String>,
+    #[clap(long, about = "Show dictionary provider")]
+    show_provider: bool,
+    #[clap(long, about = "Show URL")]
+    show_url: bool,
+    // broken: it consumes all following input until next flag
+    // issue: https://github.com/clap-rs/clap/issues/1772
+    //
+    //#[clap(
+    //    long,
+    //    possible_values = &["all", "yahoo"],
+    //    default_value = "yahoo",
+    //    //multiple_occurrences = true,
+    //    //parse(from_str),
+    //)]
+    //dict: Vec<String>,
+    #[clap(short, long, about = "Use verbose output")]
+    #[clap(max_occurrences=2, parse(from_occurrences))]
+    verbose: i32,
+    #[clap(subcommand)]
+    subcmd: Option<SubCommand>,
+}
+
+
+#[derive(Clap, Debug)]
+enum SubCommand {
+    #[clap(name = "dicts", about = "Show currently supported dictionaries")]
+    ListDicts,
+}
+
 
 fn main() {
+    let opts = Opts::parse(); dbg!(opts); return;
+
     let yaml = load_yaml!("args.yaml");
     let app = App::from(yaml).version("3.0");
     let matches = app.get_matches();
