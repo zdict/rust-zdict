@@ -76,100 +76,86 @@ mod opts_design {
 
     #[test]
     fn list_dict() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "dicts"]),
-            Opts {
-                words: vec![],
-                show_provider: false,
-                show_url: false,
-                verbose: 0,
-                subcmd: Some(SubCommand::ListDicts),
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "dicts"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec![],
+            show_provider: false,
+            show_url: false,
+            verbose: 0,
+            subcmd: Some(SubCommand::ListDicts),
+        });
     }
 
     #[test]
     fn given_one_word() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "moe"]),
-            Opts {
-                words: vec_of_strings!["moe"],
-                show_provider: false,
-                show_url: false,
-                verbose: 0,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "moe"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["moe"],
+            show_provider: false,
+            show_url: false,
+            verbose: 0,
+            subcmd: None,
+        });
     }
 
     #[test]
     fn given_three_words() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "moe", "moe", "moe"]),
-            Opts {
-                words: vec_of_strings!["moe", "moe", "moe"],
-                show_provider: false,
-                show_url: false,
-                verbose: 0,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "moe", "moe", "moe"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["moe", "moe", "moe"],
+            show_provider: false,
+            show_url: false,
+            verbose: 0,
+            subcmd: None,
+        });
     }
 
     #[test]
     fn set_flag_after_word() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "moe", "--show-provider"]),
-            Opts {
-                words: vec_of_strings!["moe"],
-                show_provider: true,
-                show_url: false,
-                verbose: 0,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "moe", "--show-provider"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["moe"],
+            show_provider: true,
+            show_url: false,
+            verbose: 0,
+            subcmd: None,
+        });
     }
 
     #[test]
     fn set_flag_before_word() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "--show-url", "moe"]),
-            Opts {
-                words: vec_of_strings!["moe"],
-                show_provider: false,
-                show_url: true,
-                verbose: 0,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "moe"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["moe"],
+            show_provider: false,
+            show_url: true,
+            verbose: 0,
+            subcmd: None,
+        });
     }
 
     #[test]
     fn set_flag_before_word_as_subcommand() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "--show-url", "dicts"]),
-            Opts {
-                words: vec_of_strings!["dicts"],
-                show_provider: false,
-                show_url: true,
-                verbose: 0,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "dicts"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["dicts"],
+            show_provider: false,
+            show_url: true,
+            verbose: 0,
+            subcmd: None,
+        });
     }
 
     #[test]
     fn enable_verbose() {
-        assert_eq!(
-            Opts::parse_from(&["zd", "-v", "moe", "--verbose"]),
-            Opts {
-                words: vec_of_strings!["moe"],
-                show_provider: false,
-                show_url: false,
-                verbose: 2,
-                subcmd: None,
-            }
-        );
+        let parsed_opts = Opts::try_parse_from(&["zd", "-v", "moe", "--verbose"]).unwrap();
+        assert_eq!(parsed_opts, Opts {
+            words: vec_of_strings!["moe"],
+            show_provider: false,
+            show_url: false,
+            verbose: 2,
+            subcmd: None,
+        });
     }
 
     #[test]
