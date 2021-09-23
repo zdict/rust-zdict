@@ -48,15 +48,15 @@ enum SubCommand {
     ListDicts,
 }
 
-pub fn get_parsed_opts() -> Opts { Opts::parse() }
+pub fn parse_opts() -> Opts { Opts::parse() }
 
 /* ================================================== */
 
 pub use clap::{App, load_yaml};
 
-macro_rules! get_app_matches {
+macro_rules! get_matches {
     () => { $crate::cli::App::from($crate::cli::load_yaml!("args.yaml")).get_matches() }
-} pub(crate) use get_app_matches;
+} pub(crate) use get_matches;
 
 /* ================================================== */
 
@@ -197,12 +197,12 @@ mod yaml_design {
 
     #[test]
     fn list_dict() {
-        let matches = try_get_matches_from!(&["zd", "dicts"]).unwrap();
-        assert!(!matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(!matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_some());
+        let mats = try_get_matches_from!(&["zd", "dicts"]).unwrap();
+        assert!(!mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(!mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_some());
     }
 
     #[test]
@@ -213,82 +213,82 @@ mod yaml_design {
 
     #[test]
     fn given_one_word() {
-        let matches = try_get_matches_from!(&["zd", "moe"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(!matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "moe"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(!mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["moe"]);
     }
 
     #[test]
     fn given_three_words() {
-        let matches = try_get_matches_from!(&["zd", "moe", "moe", "moe"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(!matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "moe", "moe", "moe"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(!mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["moe", "moe", "moe"]);
     }
 
     #[test]
     fn set_flag_after_word() {
-        let matches = try_get_matches_from!(&["zd", "moe", "--show-provider"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(matches.is_present("show provider"));
-        assert!(!matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "moe", "--show-provider"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(mats.is_present("show provider"));
+        assert!(!mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["moe"]);
     }
 
     #[test]
     fn set_flag_before_word() {
-        let matches = try_get_matches_from!(&["zd", "--show-url", "moe"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "--show-url", "moe"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["moe"]);
     }
 
     #[test]
     fn set_flag_before_word_as_subcommand() {
-        let matches = try_get_matches_from!(&["zd", "--show-url", "dicts"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(matches.is_present("show url"));
-        assert!(!matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "--show-url", "dicts"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(mats.is_present("show url"));
+        assert!(!mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["dicts"]);
     }
 
     #[test]
     fn enable_verbose() {
-        let matches = try_get_matches_from!(&["zd", "-v", "moe", "--verbose"]).unwrap();
-        assert!(matches.is_present("words"));
-        assert!(!matches.is_present("show provider"));
-        assert!(!matches.is_present("show url"));
-        assert!(matches.is_present("verbose"));
-        assert!(matches.subcommand_matches("dicts").is_none());
+        let mats = try_get_matches_from!(&["zd", "-v", "moe", "--verbose"]).unwrap();
+        assert!(mats.is_present("words"));
+        assert!(!mats.is_present("show provider"));
+        assert!(!mats.is_present("show url"));
+        assert!(mats.is_present("verbose"));
+        assert!(mats.subcommand_matches("dicts").is_none());
 
-        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
         assert_eq!(words, vec_of_strings!["moe"]);
 
-        assert_eq!(matches.occurrences_of("verbose"), 2);
+        assert_eq!(mats.occurrences_of("verbose"), 2);
     }
 
     #[test]
