@@ -66,7 +66,7 @@ mod opts_design {
 
     macro_rules! vec_of_strings {
         ($($x:expr),*) => { vec![$($x.to_string()),*] };
-    }
+    } pub(super) use vec_of_strings;
 
     #[test]
     fn display_help_when_no_arguments() {
@@ -84,6 +84,12 @@ mod opts_design {
             verbose: 0,
             subcmd: Some(SubCommand::ListDicts),
         });
+    }
+
+    #[test]
+    fn require_words() {
+        let err = Opts::try_parse_from(&["zd", "-v"]).unwrap_err();
+        assert_eq!(err.kind, clap::ErrorKind::MissingRequiredArgument);
     }
 
     #[test]
@@ -172,10 +178,129 @@ mod opts_design {
 }
 
 #[cfg(test)]
-mod yaml {
-    //use super::*;
+mod yaml_design {
+    use super::*;
+    use super::opts_design::vec_of_strings;
+
+    macro_rules! try_get_matches_from {
+        ($cmd:expr) => {
+            App::from(load_yaml!("args.yaml")).try_get_matches_from($cmd)
+        }
+    }
+
+    #[test]
+    #[ignore = "not supported"]
+    fn display_help_when_no_arguments() {
+        let err = try_get_matches_from!(&["zd"]).unwrap_err();
+        assert_eq!(err.kind, clap::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
+    }
 
     #[test]
     fn list_dict() {
+        let matches = try_get_matches_from!(&["zd", "dicts"]).unwrap();
+        assert!(!matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(!matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_some());
+    }
+
+    #[test]
+    fn require_words() {
+        let err = try_get_matches_from!(&["zd", "-v"]).unwrap_err();
+        assert_eq!(err.kind, clap::ErrorKind::MissingRequiredArgument);
+    }
+
+    #[test]
+    fn given_one_word() {
+        let matches = try_get_matches_from!(&["zd", "moe"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(!matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["moe"]);
+    }
+
+    #[test]
+    fn given_three_words() {
+        let matches = try_get_matches_from!(&["zd", "moe", "moe", "moe"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(!matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["moe", "moe", "moe"]);
+    }
+
+    #[test]
+    fn set_flag_after_word() {
+        let matches = try_get_matches_from!(&["zd", "moe", "--show-provider"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(matches.is_present("show provider"));
+        assert!(!matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["moe"]);
+    }
+
+    #[test]
+    fn set_flag_before_word() {
+        let matches = try_get_matches_from!(&["zd", "--show-url", "moe"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["moe"]);
+    }
+
+    #[test]
+    fn set_flag_before_word_as_subcommand() {
+        let matches = try_get_matches_from!(&["zd", "--show-url", "dicts"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(matches.is_present("show url"));
+        assert!(!matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["dicts"]);
+    }
+
+    #[test]
+    fn enable_verbose() {
+        let matches = try_get_matches_from!(&["zd", "-v", "moe", "--verbose"]).unwrap();
+        assert!(matches.is_present("words"));
+        assert!(!matches.is_present("show provider"));
+        assert!(!matches.is_present("show url"));
+        assert!(matches.is_present("verbose"));
+        assert!(matches.subcommand_matches("dicts").is_none());
+
+        let words: Vec<&str> = matches.values_of("words").unwrap().collect();
+        assert_eq!(words, vec_of_strings!["moe"]);
+
+        assert_eq!(matches.occurrences_of("verbose"), 2);
+    }
+
+    #[test]
+    #[ignore = "not supported"]
+    fn reject_too_many_verbose() {
+        let err = try_get_matches_from!(&["zd", "-vv", "moe", "--verbose"]).unwrap_err();
+        assert_eq!(err.kind, clap::ErrorKind::TooManyOccurrences);
+    }
+
+    #[test]
+    fn not_allow_arguments_after_subcommand() {
+        let err = try_get_matches_from!(&["zd", "dicts", "--verbose"]).unwrap_err();
+        assert_eq!(err.kind, clap::ErrorKind::UnknownArgument);
     }
 }
