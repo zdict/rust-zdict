@@ -14,13 +14,13 @@ pub struct Opts {
     #[clap(about = "Search translation of words")]
     #[clap(value_name = "word")]
     #[clap(required = true)]
-    words: Vec<String>,
+    pub words: Vec<String>,
 
     #[clap(long, about = "Show dictionary provider")]
-    show_provider: bool,
+    pub show_provider: bool,
 
     #[clap(long, about = "Show URL")]
-    show_url: bool,
+    pub show_url: bool,
 
     // broken: it consumes all following input until next flag
     // issue: https://github.com/clap-rs/clap/issues/1772
@@ -36,14 +36,14 @@ pub struct Opts {
 
     #[clap(short, long, about = "Use verbose output")]
     #[clap(max_occurrences=2, parse(from_occurrences))]
-    verbose: i32,
+    pub verbose: i32,
 
     #[clap(subcommand)]
-    subcmd: Option<SubCommand>,
+    pub subcmd: Option<SubCommand>,
 }
 
 #[derive(Clap, Debug, PartialEq)]
-enum SubCommand {
+pub enum SubCommand {
     #[clap(name = "dicts", about = "Show currently supported dictionaries")]
     ListDicts,
 }
