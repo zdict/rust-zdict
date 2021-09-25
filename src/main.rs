@@ -16,6 +16,22 @@ fn _main() {
             https://tw.dictionary.yahoo.com/
         ");
     } else {
-        println!("searching words: {:?}", opts.words);
+        /*
+        yahoo = dicts::yahoo  // a constant of DictBase { ... }
+        lookup = yahoo.lookup(&word)
+        if show_provider:
+            println!("{}", lookup.provider)  // blue
+        if show_url:
+            println!("{}", lookup.url)  // blue
+        loop {
+            if use_db_cache:
+                if let Some(record) = lookup.query_db():
+                    println!("{}", record)
+                    break
+            record = lookup.query().expect("error message")
+            println!("{}", record)
+            break
+        }
+        */
     }
 }
