@@ -3,7 +3,7 @@ use clap::{AppSettings, Clap};
 #[derive(Clap, Debug, PartialEq)]
 #[clap(name = "zdict")]
 //#[clap(version = env!("CARGO_PKG_VERSION"))]
-//#[clap(settings = &[AppSettings::ColoredHelp])]  // not support yet
+//#[clap(settings = &[AppSettings::ColoredHelp])]  // not support `setting *s*` yet
 #[clap(setting = AppSettings::ColoredHelp)]
 #[clap(setting = AppSettings::DisableVersionForSubcommands)]
 #[clap(setting = AppSettings::DisableHelpSubcommand)]
@@ -32,7 +32,12 @@ pub struct Opts {
     //    //multiple_occurrences = true,
     //    //parse(from_str),
     //)]
-    //dict: Vec<String>,
+    //dicts: Vec<String>,
+
+    #[clap(long, about = "Choose the dictionary")]
+    #[clap(possible_values = &["yahoo", "urban", "all"])]
+    //#[clap(default_value = "yahoo")]  // avoid default value to break `ArgRequiredElseHelp`
+    pub dict: Option<String>,
 
     #[clap(short, long, about = "Use verbose output")]
     #[clap(max_occurrences=2, parse(from_occurrences))]
@@ -81,6 +86,7 @@ mod opts_design {
             words: vec![],
             show_provider: false,
             show_url: false,
+            dict: None,
             verbose: 0,
             subcmd: Some(SubCommand::ListDicts),
         });
@@ -99,6 +105,7 @@ mod opts_design {
             words: vec_of_strings!["moe"],
             show_provider: false,
             show_url: false,
+            dict: None,
             verbose: 0,
             subcmd: None,
         });
@@ -111,6 +118,7 @@ mod opts_design {
             words: vec_of_strings!["moe", "moe", "moe"],
             show_provider: false,
             show_url: false,
+            dict: None,
             verbose: 0,
             subcmd: None,
         });
@@ -123,6 +131,7 @@ mod opts_design {
             words: vec_of_strings!["moe"],
             show_provider: true,
             show_url: false,
+            dict: None,
             verbose: 0,
             subcmd: None,
         });
@@ -135,6 +144,7 @@ mod opts_design {
             words: vec_of_strings!["moe"],
             show_provider: false,
             show_url: true,
+            dict: None,
             verbose: 0,
             subcmd: None,
         });
@@ -147,6 +157,7 @@ mod opts_design {
             words: vec_of_strings!["dicts"],
             show_provider: false,
             show_url: true,
+            dict: None,
             verbose: 0,
             subcmd: None,
         });
@@ -159,6 +170,7 @@ mod opts_design {
             words: vec_of_strings!["moe"],
             show_provider: false,
             show_url: false,
+            dict: None,
             verbose: 2,
             subcmd: None,
         });
