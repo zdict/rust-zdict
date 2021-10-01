@@ -14,7 +14,7 @@ macro_rules! register_dicts {
             let words = opts.words;
             opts.words = vec![];
 
-            let use_db_cache: bool = false;
+            let use_db_cache: bool = true;
 
             for word /* String */ in words.into_iter() {
                 match dict.as_str() {
@@ -44,14 +44,17 @@ trait Lookup {
     fn query(&self, url: &str) -> Self::Record;
 
     fn get_url(&self, word: &str) -> String {
+        println!("[INFO] Query API ...");
         Self::API.replace("{word}", word)
     }
     fn query_db_cache(&self, word: &str) -> Option<Self::Record> {
-        println!("provider -> {}; word -> {}", Self::PROVIDER, word);
+        println!("[INFO] Query DB cache ...");
+        println!("[DEBUG] Failed to query DB cache due to not implemented.\n\
+                  [DEBUG] Key => {{word: {}, source: {}}}", word, Self::PROVIDER);
         None /* Record { .... } */
     }
     fn lookup(&self, word: String, use_db_cache: bool, opts: &Opts) {
-        println!("opts => {:?}", opts);
+        println!("[DEBUG] opts => {:?}", opts);
 
         let url: String = self.get_url(&word);
 
