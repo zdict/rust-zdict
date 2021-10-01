@@ -32,3 +32,5 @@ reqwest = { version = "*", features = ["blocking"] }
 #html5ever = "*"
 #markup5ever_rcdom = "*"
 kuchiki = "*"
+
+serde_json = "*"

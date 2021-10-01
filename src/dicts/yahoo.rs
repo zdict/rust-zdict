@@ -3,7 +3,8 @@ use super::{Lookup, Display};
 pub struct Dict;
 impl Lookup for Dict {
     const HOMEPAGE_URL: &'static str = "https://tw.dictionary.yahoo.com/";
-    const API: &'static str = "https://tw.dictionary.yahoo.com/dictionary?p={word}";
+    //const API: &'static str = "https://tw.dictionary.yahoo.com/dictionary?p={word}";
+    const API: &'static str = "https://tw.dictionary.search.yahoo.com/search?p={word}";
     const TITLE: &'static str = "Yahoo Dictionary";
     const PROVIDER: &'static str = "yahoo";
     type Record = Record;
