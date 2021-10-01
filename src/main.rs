@@ -7,6 +7,6 @@ fn main() {
     if opts.subcmd.is_some() {
         dicts::list_dicts();
     } else {
-        dicts::lookup(opts);
+        dicts::use_dict(opts);
     }
 }
