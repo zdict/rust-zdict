@@ -16,7 +16,17 @@ macro_rules! register_dicts {
 
                 match dict_name.as_str() {
                     $(
-                    stringify!($d) => &$d::Dict.lookup(word, use_db_cache),  // TODO: separate `query_db_cache` out ?
+                    stringify!($d) => {
+                        if use_db_cache {
+                            if let Some(record /* <Self as Lookup>::Record */) = &$d::Dict.query_db_cache(&word) {
+                                record.show()
+                            } else {
+                                $d::Dict.query(&word).show()
+                            }
+                        } else {
+                            $d::Dict.query(&word).show()
+                        }
+                    },
                     )+
                     _ => unreachable!(),
                 };
@@ -44,15 +54,6 @@ trait Lookup {
     fn query_db_cache(&self, word: &str) -> Option<Self::Record> {
         println!("provider -> {}; word -> {}", Self::NAME, word);
         None /* Record { .... } */
-    }
-    fn lookup(&self, word: String, use_db_cache: bool) {
-        if use_db_cache {
-            if let Some(record /* <Self as Lookup>::Record */) = self.query_db_cache(&word) {
-                record.show();
-                return;
-            }
-        }
-        self.query(&word).show();
     }
 }
 
