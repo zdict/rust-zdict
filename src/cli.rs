@@ -59,9 +59,9 @@ pub fn parse_opts() -> Opts { Opts::parse() }
 
 pub use clap::{App, load_yaml};
 
-macro_rules! get_matches {
+#[allow(unused)] macro_rules! get_matches {
     () => { $crate::cli::App::from($crate::cli::load_yaml!("args.yaml")).get_matches() }
-} pub(crate) use get_matches;
+} #[allow(unused)] pub(crate) use get_matches;
 
 /* ================================================== */
 
