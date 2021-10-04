@@ -23,7 +23,7 @@ pub struct Record {
     content: Value,
 }
 impl Display for Record {
-    fn show(&self) {
+    fn show(&self, _verbose: u8) {
         //println!("[DEBUG] urban record → {}", self.content)
         let list = &self.content["list"];
         //println!("[DEBUG] {}", data);

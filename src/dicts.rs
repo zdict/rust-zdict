@@ -53,6 +53,9 @@ trait Lookup {
                   [DEBUG] Key => {{word: {}, source: {}}}", word, Self::PROVIDER);
         None /* Record { .... } */
     }
+    fn save(&self, _record: &impl Display, _word: &str) {
+        // TODO: implement
+    }
     fn lookup(&self, word: String, use_db_cache: bool, opts: &Opts) {
         println!("[DEBUG] opts => {:?}", opts);
 
@@ -68,13 +71,15 @@ trait Lookup {
 
         if use_db_cache {
             if let Some(record) = self.query_db_cache(&word) {
-                return record.show()
+                return record.show(opts.verbose);
             }
         }
-        self.query(&url).show()
+        let record = self.query(&url);
+        self.save(&record, &word);
+        record.show(opts.verbose);
     }
 }
 
 trait Display {
-    fn show(&self) {}
+    fn show(&self, verbose: u8);
 }

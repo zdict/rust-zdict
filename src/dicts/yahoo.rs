@@ -115,7 +115,19 @@ pub struct Record {
     verbose: Value,
 }
 impl Display for Record {
-    fn show(&self) {
-        println!("yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose)
+    fn show(&self, verbose: u8) {
+        //println!("[DEBUG] yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose);
+        show_summary(&self.summary);
+        println!();
+        show_explain(&self.summary);
+        if verbose > 0 && !self.verbose.as_array().unwrap().is_empty() {
+            println!();
+            show_verbose(&self.verbose);
+        }
+        println!();
     }
 }
+
+fn show_summary(_summary: &Value) {}
+fn show_explain(_explain: &Value) {}
+fn show_verbose(_verbose: &Value) {}

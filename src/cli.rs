@@ -41,7 +41,7 @@ pub struct Opts {
 
     #[clap(short, long, about = "Use verbose output")]
     #[clap(max_occurrences=2, parse(from_occurrences))]
-    pub verbose: i32,
+    pub verbose: u8,
 
     #[clap(subcommand)]
     pub subcmd: Option<SubCommand>,
