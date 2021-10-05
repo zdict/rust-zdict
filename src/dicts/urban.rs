@@ -23,18 +23,16 @@ pub struct Record {
     content: Value,
 }
 impl Display for Record {
-    fn show(&self, _word: &str, _verbose: u8) {
+    fn show(&self, word: &str, _verbose: u8) {
         //println!("[DEBUG] urban record → {}", self.content)
         let list = &self.content["list"];
         //println!("[DEBUG] {}", data);
 
-        println!("\x1b[33m{}\x1b[0m", list[0]["word"].as_str().unwrap_or(""));
+        println!("\x1b[33m{}\x1b[0m", word);
 
         #[allow(clippy::never_loop)]
         for data in list.as_array().unwrap_or(&vec![]).iter() {
-            for line in data["definition"].as_str().unwrap_or("").lines() {
-                println!("  \x1b[0m{}\x1b[0m", line);
-            }
+            println!("  \x1b[0m{}\x1b[0m", data["definition"].as_str().unwrap_or(""));
 
             for line in data["example"].as_str().unwrap_or("").lines() {
                 println!("  \x1b[36m{}\x1b[0m", line);
