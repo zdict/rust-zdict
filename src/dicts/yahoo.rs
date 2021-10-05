@@ -67,19 +67,19 @@ fn parse_explain(document: &NodeRef) -> Value {
         match elm.attributes.borrow().get("class").unwrap() {
             cls_attr if cls_attr.contains("compTitle") => {
                 //println!("[DEBUG] cls attr => {:?}", cls_attr);
-                let j = json!({"type": "PoS", "text": elm.text_contents()});
+                let pos = json!({"type": "PoS", "text": elm.text_contents()});
                 //println!("[DEBUG] json => {:?}", j);
-                Some(j)
+                Some(vec![pos])
             },
             cls_attr if cls_attr.contains("compTextList") => {
                 //println!("[DEBUG] cls attr => {:?}", cls_attr);
-                let ul: Value = elm.as_node().select("li").unwrap().map(parse_item).collect();
+                let ul: Vec<_> = elm.as_node().select("li").unwrap().map(parse_item).collect();
                 //println!("[DEBUG] json => {:?}", ul);
                 Some(ul)
             },
             _ => None,
         }
-    }).flatten().collect();
+    }).flatten().flatten().collect();
 
     explain
 }
@@ -118,8 +118,10 @@ impl Display for Record {
     fn show(&self, verbose: u8) {
         //println!("[DEBUG] yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose);
         show_summary(&self.summary);
-        println!();
-        show_explain(&self.summary);
+        if !self.explain.as_array().unwrap().is_empty() {
+            println!();
+            show_explain(&self.explain);
+        }
         if verbose > 0 && !self.verbose.as_array().unwrap().is_empty() {
             println!();
             show_verbose(&self.verbose);
@@ -130,7 +132,55 @@ impl Display for Record {
 
 fn show_summary(_summary: &Value) {}
 
-fn show_explain(_explain: &Value) {}
+fn show_explain(explain: &Value) {
+    let show_sentence = |sentence: &Value| {
+        let mut is_line_start = true;
+        for s in sentence.as_array().unwrap().iter() {
+            match s {
+                Value::String(s) => {
+                    if s == "\n" {
+                        println!();
+                        is_line_start = true;
+                    } else {
+                        if is_line_start {
+                            print!("    \x1b[36m{}\x1b[0m", s);
+                        } else {
+                            print!("\x1b[36m{}\x1b[0m", s);
+                        }
+                        is_line_start = false;
+                    }
+                },
+                Value::Array(s) => {
+                    assert_eq!(s[0].as_str(), Some("b"));
+                    let s = s[1].as_str().unwrap();
+                    print!("\x1b[36;1m{}\x1b[0m", s);
+                    is_line_start = false;
+                },
+                _ => unreachable!(),
+            }
+        }
+    };
+
+    for exp in explain.as_array().unwrap().iter() {
+        //dbg!(exp);  // TODO: dbg or [DEBUG] log?
+        let exp = exp.as_object().unwrap();
+        match exp.get("type").unwrap().as_str().unwrap() {
+            "PoS" => {
+                // TODO: better structure, better way to get value than `unwrap` everywhere
+                let s = exp.get("text").unwrap().as_str().unwrap();
+                println!("\x1b[31;1m{}\x1b[0m", s);
+            },
+            "item" => {
+                let s = exp.get("text").unwrap().as_str().unwrap();
+                println!("  \x1b[0m{}\x1b[0m", s);
+                if let Some(sentence) = exp.get("sentence") {
+                    show_sentence(sentence);
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
 
 // TODO: better data structure replaces json
 fn show_verbose(verbose: &Value) {
