@@ -85,7 +85,12 @@ fn parse_explain(document: &NodeRef) -> Value {
 }
 
 fn parse_verbose(document: &NodeRef) -> Value {
-    let synonyms = document.select_first("div.tab-content-synonyms").unwrap();
+    let synonyms = if let Ok(synonyms) = document.select_first("div.tab-content-synonyms") {
+        synonyms
+    } else {
+        return json!([]);
+    };
+
     let verbose = synonyms.as_node().children().elements().map(|elm| {
         match elm.name.local {
             local_name!("div") => {
