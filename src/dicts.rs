@@ -71,15 +71,15 @@ trait Lookup {
 
         if use_db_cache {
             if let Some(record) = self.query_db_cache(&word) {
-                return record.show(&word, opts.verbose);
+                return record.show(opts.verbose);
             }
         }
         let record = self.query(&url);
         self.save(&record, &word);
-        record.show(&word, opts.verbose);
+        record.show(opts.verbose);
     }
 }
 
 trait Display {
-    fn show(&self, word: &str, verbose: u8);
+    fn show(&self, verbose: u8);
 }

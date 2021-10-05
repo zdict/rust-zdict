@@ -26,8 +26,49 @@ impl Lookup for Dict {
     }
 }
 
-fn parse_summary(_content: &NodeRef) -> Value {
-    json!(null)
+#[allow(clippy::many_single_char_names)]
+fn parse_summary(document: &NodeRef) -> Value {
+    let summary = document.select_first("div#web ol.searchCenterMiddle").unwrap();
+
+    let grammar = summary.as_node().select("div.dictionaryWordCard > ul > li").unwrap();
+    let grammar: Vec<_> = grammar.map(|s| s.text_contents()).collect();
+
+    let nodes = summary.as_node().select("div.sys_dict_word_card > div.grp-main > div").unwrap();
+    let nodes: Vec<_> = nodes.collect();
+
+    let (w, p, e) = match nodes.as_slice() {
+        [w, p, .., e] => (w, Some(p), e),
+        [w, e] => (w, None, e),
+        _ => unreachable!(),
+    };
+
+    let word = w.as_node().text_contents().trim().to_string();
+    let pronounce = p.map(|p| {
+        //let x = p.as_node().select_first("ul").unwrap().text_contents();
+        let x = p.text_contents();
+        let xs = x.split_whitespace();
+        let xss: Vec<_> = xs.map(|x| {
+            let i = x.find('[').unwrap();
+            (x[..i].to_string(), x[i..].to_string())
+        }).collect();
+        xss
+    });
+    let explain = {
+        let ms = e.as_node().select("ul > li div").unwrap();
+        let ts: Vec<_> = ms.map(|m| {
+            let k = match m.attributes.borrow().get("class").unwrap() {
+                cls_attr if cls_attr.contains("pos_button") => "pos".to_string(),
+                cls_attr if cls_attr.contains("dictionaryExplanation") => "explain".to_string(),
+                _ => "?".to_string(),
+            };
+            (k, m.text_contents())
+        }).collect();
+        ts
+    };
+
+    let summary = json!({"word": word, "pronounce": pronounce, "explain": explain, "grammar": grammar});
+
+    summary
 }
 
 macro_rules! next_text { ($nodes:expr) => ($nodes.next().unwrap().text_contents()) }
@@ -120,11 +161,9 @@ pub struct Record {
     verbose: Value,
 }
 impl Display for Record {
-    // TODO: is a way to avoid add arguments on interface?
-    // for example, Dict instance itself?
-    fn show(&self, word: &str, verbose: u8) {
+    fn show(&self, verbose: u8) {
         //println!("[DEBUG] yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose);
-        println!("\x1b[33m{}\x1b[0m", &word);
+        // TODO: doesn't need `word` because summary has it
         show_summary(&self.summary);
         if !self.explain.as_array().unwrap().is_empty() {
             println!();
@@ -138,8 +177,41 @@ impl Display for Record {
     }
 }
 
-fn show_summary(_summary: &Value) {
-    println!("summary...");
+fn show_summary(summary: &Value) {
+    let word = summary.get("word").unwrap();
+    println!("\x1b[33m{}\x1b[0m", word.as_str().unwrap());
+
+    let pronounce = summary.get("pronounce").unwrap().as_array().unwrap();
+    for value in pronounce {
+        //dbg!(&value);
+        let vs = value.as_array().unwrap();
+        print!("\x1b[0m{}\x1b[0m", vs[0].as_str().unwrap());
+        print!("\x1b[37;1m{}\x1b[0m ", vs[1].as_str().unwrap());
+    }
+    if !pronounce.is_empty() {
+        println!();
+    }
+
+    let explain = summary.get("explain").unwrap().as_array().unwrap();
+    for value in explain {
+        //dbg!(&value);
+        let vs = value.as_array().unwrap();
+        match vs[0].as_str().unwrap() {
+            "pos" => print!("  \x1b[31;1m{}\x1b[0m ", vs[1].as_str().unwrap()),
+            "explain" => println!("\x1b[0m{}\x1b[0m", vs[1].as_str().unwrap()),
+            _ => unreachable!(),
+        }
+    }
+
+    // XXX: grammar and pronounce are optional ?
+    let grammar = summary.get("grammar").unwrap().as_array().unwrap();
+    if !grammar.is_empty() {
+        println!();
+    }
+    for value in grammar {
+        println!("  \x1b[0m{}\x1b[0m", value.as_str().unwrap());
+    }
+
 }
 
 fn show_explain(explain: &Value) {
