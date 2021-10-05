@@ -90,9 +90,9 @@ fn parse_verbose(document: &NodeRef) -> Value {
         match elm.name.local {
             local_name!("div") => {
                 if let Ok(span) = elm.as_node().select_first(".fw-xl") {
-                    Some(json!(["title", span.text_contents()]))
+                    Some(vec![json!(["title", span.text_contents()])])
                 } else if let Ok(span) = elm.as_node().select_first(".fw-500") {
-                    Some(json!(["explain", span.text_contents()]))
+                    Some(vec![json!(["explain", span.text_contents()])])
                 } else {
                     None
                 }
@@ -104,7 +104,7 @@ fn parse_verbose(document: &NodeRef) -> Value {
             },
             _ => None,
         }
-    }).flatten().collect();
+    }).flatten().flatten().collect();
 
     verbose
 }
@@ -129,5 +129,20 @@ impl Display for Record {
 }
 
 fn show_summary(_summary: &Value) {}
+
 fn show_explain(_explain: &Value) {}
-fn show_verbose(_verbose: &Value) {}
+
+// TODO: better data structure replaces json
+fn show_verbose(verbose: &Value) {
+    for x in verbose.as_array().unwrap().iter() {
+        //println!("[DEBUG] x => {:?}", x);
+        let x = x.as_array().unwrap();
+        let (k, v) = (x[0].as_str().unwrap(), x[1].as_str().unwrap());
+        match k {
+            "title" => println!("\x1b[31;1m{}\x1b[0m", v),
+            "explain" => println!("  \x1b[0m{}\x1b[0m", v),
+            "item" => println!("    \x1b[36m{}\x1b[0m", v),
+            _ => unreachable!(),
+        }
+    }
+}
