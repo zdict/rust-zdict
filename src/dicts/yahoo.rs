@@ -120,8 +120,11 @@ pub struct Record {
     verbose: Value,
 }
 impl Display for Record {
-    fn show(&self, verbose: u8) {
+    // TODO: is a way to avoid add arguments on interface?
+    // for example, Dict instance itself?
+    fn show(&self, word: &str, verbose: u8) {
         //println!("[DEBUG] yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose);
+        println!("\x1b[33m{}\x1b[0m", &word);
         show_summary(&self.summary);
         if !self.explain.as_array().unwrap().is_empty() {
             println!();
@@ -135,7 +138,9 @@ impl Display for Record {
     }
 }
 
-fn show_summary(_summary: &Value) {}
+fn show_summary(_summary: &Value) {
+    println!("summary...");
+}
 
 fn show_explain(explain: &Value) {
     let show_sentence = |sentence: &Value| {
