@@ -23,3 +23,14 @@ description = "Look up words via online dictionaries"
 #repository = ""
 
 [dependencies]
+clap = { version = "3.0.0-beta.4", features = ["yaml"] }
+
+#hyper = { version = "*", features = ["full"] }
+#tokio = { version = "*", features = ["full"] }  # require "full" by `tokio::main`
+reqwest = { version = "*", features = ["blocking"] }
+
+html5ever = "*"
+kuchiki = "*"
+
+#serde = { version = "*", features = ["derive"] }
+serde_json = "*"
