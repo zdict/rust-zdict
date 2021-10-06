@@ -144,9 +144,9 @@ fn parse_verbose(document: &NodeRef) -> Value {
                 }
             },
             local_name!("ul") => {
-                Some(elm.as_node().select("li > span").unwrap().map(
-                    |span| json!(["item", span.text_contents()])
-                    ).collect())
+                Some(elm.as_node().select("li > span").unwrap().map(|span|
+                    json!(["item", span.text_contents()])
+                ).collect())
             },
             _ => None,
         }

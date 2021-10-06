@@ -71,7 +71,8 @@ trait Lookup {
 
         if use_db_cache {
             if let Some(record) = self.query_db_cache(&word) {
-                return record.show(opts.verbose);
+                record.show(opts.verbose);
+                return;
             }
         }
         let record = self.query(&url);
