@@ -1,8 +1,25 @@
 [package]
-name = "zd"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# Either `license` or `license-file` to be set
+# ref: https://doc.rust-lang.org/cargo/reference/manifest.html#the-license-and-license-file-fields
+license = "MIT OR Apache-2.0"
+
+name = "zdict"
+description = "Look up words via online dictionaries"
+# Default use `.md` and not support extension `.rst`
+# ref: https://doc.rust-lang.org/cargo/reference/manifest.html#the-readme-field
+#readme = "README.md"
+
+#keywords = []
+#categories = []
+
+# Will automatically link to the corresponding docs.rs page if not given.
+# Must set it because docs.rs only render libraries.
+# ref: https://doc.rust-lang.org/cargo/reference/manifest.html#the-documentation-field
+#documentation = ""
+#homepage = ""
+#repository = ""
 
 [dependencies]
