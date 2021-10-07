@@ -21,7 +21,6 @@ impl Lookup for Dict {
         let document = kuchiki::parse_html().one(content);
 
         Content {
-            version: 2_u8,
             summary: parse_summary(&document),
             explain: parse_explain(&document),
             verbose: parse_verbose(&document),
@@ -152,7 +151,6 @@ fn parse_verbose(document: &NodeRef) -> Option<Vec<VerToken>> {
 // TODO: #[serde(with = "module")]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
-    version: u8,
     summary: Summary,
     explain: Value, // Vec<ExToken>,
     // TODO: serialize to [] if null
