@@ -4,7 +4,6 @@ use reqwest;
 use kuchiki::traits::*;
 use kuchiki::{NodeRef, NodeDataRef, ElementData};
 use html5ever::local_name;
-use serde_json::{json, Value};
 
 pub struct Dict;
 impl Lookup for Dict {
@@ -72,51 +71,47 @@ fn parse_summary(document: &NodeRef) -> Summary {
 }
 
 macro_rules! next_text { ($nodes:expr) => ($nodes.next().unwrap().text_contents()) }
-fn parse_explain(document: &NodeRef) -> Value {
-    let explanation = document.select_first("div.tab-content-explanation").unwrap();
+fn parse_explain(document: &NodeRef) -> Option<Vec<ExToken>> {
+    let explanation = document.select_first("div.tab-content-explanation");
+    if explanation.is_err() {
+        return None;
+    }
 
     let parse_item = |elm: NodeDataRef<ElementData>| {
         let mut span_nodes = elm.as_node().select("span").unwrap();
         let text = format!("{} {}", next_text!(span_nodes), next_text!(span_nodes));
-        let sentence: Value = span_nodes.map(|span| {
+        let sentence = span_nodes.map(|span| {
             let mut piece: Vec<_> = span.as_node().children().map(|node|
                 if node.as_element().is_some() {
-                    json!(["b", node.text_contents()])
+                    SenToken::Bold(node.text_contents())
                 } else {
-                    json!(node.text_contents())
+                    SenToken::Plain(node.text_contents())
                 }
             ).collect();
 
-            if let Some(Value::String(s)) = piece.pop() {
+            if let Some(SenToken::Plain(s)) = piece.pop() {
                 let (hd,tl) = s.rsplit_once(' ').unwrap();
-                piece.push(json!(hd));
-                piece.push(json!("\n"));
-                piece.push(json!(tl));
-                piece.push(json!("\n"));
+                piece.extend([hd,"\n",tl,"\n"].map(|s| SenToken::Plain(s.to_string())));
             }
 
             piece
         }).flatten().collect();
-
-        json!({"type": "item", "text": text, "sentence": sentence})
+        ExToken::Item { text, sentence }
     };
 
-    let elements = explanation.as_node().children().elements();
-    let explain: Value = elements.map(|elm| {
+    let explanation = explanation.unwrap();
+    let explain = explanation.as_node().children().elements().map(|elm| {
         match elm.attributes.borrow().get("class").unwrap() {
             cls_attr if cls_attr.contains("compTitle") => {
-                let pos = json!({"type": "PoS", "text": elm.text_contents()});
-                Some(vec![pos])
+                Some(vec![ExToken::PoS { text: elm.text_contents() }])
             },
             cls_attr if cls_attr.contains("compTextList") => {
-                let ul: Vec<_> = elm.as_node().select("li").unwrap().map(parse_item).collect();
-                Some(ul)
+                Some(elm.as_node().select("li").unwrap().map(parse_item).collect::<Vec<_>>())
             },
             _ => None,
         }
     }).flatten().flatten().collect();
-
-    explain
+    Some(explain)
 }
 
 fn parse_verbose(document: &NodeRef) -> Option<Vec<VerToken>> {
@@ -152,7 +147,7 @@ fn parse_verbose(document: &NodeRef) -> Option<Vec<VerToken>> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
     summary: Summary,
-    explain: Value, // Vec<ExToken>,
+    explain: Option<Vec<ExToken>>,
     // TODO: serialize to [] if null
     verbose: Option<Vec<VerToken>>,
 }
@@ -189,9 +184,9 @@ impl Display for Content {
     fn show(&self, verbose: u8) {
         // TODO: doesn't need `word` because summary has it
         show_summary(&self.summary);
-        if !self.explain.as_array().unwrap().is_empty() {
+        if self.explain.is_some() {
             println!();
-            show_explain(&self.explain);
+            show_explain(&self.explain.as_ref().unwrap());
         }
         if verbose > 0 && self.verbose.is_some() {
             println!();
@@ -226,51 +221,38 @@ fn show_summary(summary: &Summary) {
     }
 }
 
-fn show_explain(explain: &Value) {
-    let show_sentence = |sentence: &Value| {
-        let mut is_line_start = true;
-        for s in sentence.as_array().unwrap().iter() {
-            match s {
-                Value::String(s) => {
-                    if s == "\n" {
-                        println!();
-                        is_line_start = true;
-                    } else {
-                        if is_line_start {
-                            print!("    \x1b[36m{}\x1b[0m", s);
-                        } else {
-                            print!("\x1b[36m{}\x1b[0m", s);
-                        }
-                        is_line_start = false;
-                    }
-                },
-                Value::Array(s) => {
-                    assert_eq!(s[0].as_str(), Some("b"));
-                    let s = s[1].as_str().unwrap();
-                    print!("\x1b[36;1m{}\x1b[0m", s);
-                    is_line_start = false;
-                },
-                _ => unreachable!(),
-            }
-        }
-    };
-
-    for exp in explain.as_array().unwrap().iter() {
-        let exp = exp.as_object().unwrap();
-        match exp.get("type").unwrap().as_str().unwrap() {
-            "PoS" => {
-                // TODO: better structure, better way to get value than `unwrap` everywhere
-                let s = exp.get("text").unwrap().as_str().unwrap();
-                println!("\x1b[31;1m{}\x1b[0m", s);
+fn show_explain(explain: &[ExToken]) {
+    for token in explain {
+        match token {
+            ExToken::PoS { text } => {
+                println!("\x1b[31;1m{}\x1b[0m", text);
             },
-            "item" => {
-                let s = exp.get("text").unwrap().as_str().unwrap();
-                println!("  \x1b[0m{}\x1b[0m", s);
-                if let Some(sentence) = exp.get("sentence") {
-                    show_sentence(sentence);
-                }
+            ExToken::Item { text, sentence } => {
+                println!("  \x1b[0m{}\x1b[0m", text);
+                {
+                    let mut is_line_start = true;
+                    for s in sentence {
+                        match s {
+                            SenToken::Plain(s) if s == "\n" => {
+                                println!();
+                                is_line_start = true;
+                            },
+                            SenToken::Plain(s) if is_line_start => {
+                                print!("    \x1b[36m{}\x1b[0m", s);
+                                is_line_start = false;
+                            },
+                            SenToken::Plain(s) => {
+                                print!("\x1b[36m{}\x1b[0m", s);
+                                is_line_start = false;
+                            },
+                            SenToken::Bold(s) => {
+                                print!("\x1b[36;1m{}\x1b[0m", s);
+                                is_line_start = false;
+                            },
+                        }
+                    }
+                };
             }
-            _ => unreachable!(),
         }
     }
 }
