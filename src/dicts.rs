@@ -6,7 +6,7 @@ macro_rules! register_dicts {
         mod $d;
         )+
 
-        /// normal mode
+        // normal mode
         pub fn use_dict(mut opts: Opts) {
             let dict = opts.dict.unwrap_or("yahoo".to_string());
             opts.dict = None;
@@ -44,20 +44,15 @@ trait Lookup {
     fn query(&self, url: &str) -> Self::Record;
 
     fn get_url(&self, word: &str) -> String {
-        //println!("[INFO] Query API ...");
         Self::API.replace("{word}", word)
     }
     fn query_db_cache(&self, _word: &str) -> Option<Self::Record> {
-        //println!("[INFO] Query DB cache ...");
-        //println!("[DEBUG] Failed to query DB cache due to not implemented.\n\
-        //          [DEBUG] Key => {{word: {}, source: {}}}", word, Self::PROVIDER);
         None /* Record { .... } */
     }
     fn save(&self, _record: &impl Display, _word: &str) {
         // TODO: implement
     }
     fn lookup(&self, word: String, use_db_cache: bool, opts: &Opts) {
-        //println!("[DEBUG] opts => {:?}", opts);
 
         let url: String = self.get_url(&word);
 

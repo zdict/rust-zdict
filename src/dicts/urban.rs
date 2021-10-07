@@ -12,7 +12,6 @@ impl Lookup for Dict {
     fn query(&self, url: &str) -> Self::Record {
         let response = reqwest::blocking::get(url).expect("...");
         let content = response.text().expect("...");
-        //println!("[DEBUG] {:?}", content);
 
         let content: Value = from_str(&content).expect("...");
         Record { content }
@@ -24,9 +23,7 @@ pub struct Record {
 }
 impl Display for Record {
     fn show(&self, _verbose: u8) {
-        //println!("[DEBUG] urban record → {}", self.content)
         let list = &self.content["list"];
-        //println!("[DEBUG] {}", data);
 
         println!("\x1b[33m{}\x1b[0m", list[0]["word"].as_str().unwrap_or(""));
 

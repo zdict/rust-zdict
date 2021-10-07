@@ -74,7 +74,6 @@ fn parse_summary(document: &NodeRef) -> Value {
 macro_rules! next_text { ($nodes:expr) => ($nodes.next().unwrap().text_contents()) }
 fn parse_explain(document: &NodeRef) -> Value {
     let explanation = document.select_first("div.tab-content-explanation").unwrap();
-    //println!("[DEBUG] explanation -> {:?}", explain);
 
     let parse_item = |elm: NodeDataRef<ElementData>| {
         let mut span_nodes = elm.as_node().select("span").unwrap();
@@ -99,7 +98,6 @@ fn parse_explain(document: &NodeRef) -> Value {
             piece
         }).flatten().collect();
 
-        //println!("[DEBUG] sentence -> {:?}", sentence);
         json!({"type": "item", "text": text, "sentence": sentence})
     };
 
@@ -107,15 +105,11 @@ fn parse_explain(document: &NodeRef) -> Value {
     let explain: Value = elements.map(|elm| {
         match elm.attributes.borrow().get("class").unwrap() {
             cls_attr if cls_attr.contains("compTitle") => {
-                //println!("[DEBUG] cls attr => {:?}", cls_attr);
                 let pos = json!({"type": "PoS", "text": elm.text_contents()});
-                //println!("[DEBUG] json => {:?}", j);
                 Some(vec![pos])
             },
             cls_attr if cls_attr.contains("compTextList") => {
-                //println!("[DEBUG] cls attr => {:?}", cls_attr);
                 let ul: Vec<_> = elm.as_node().select("li").unwrap().map(parse_item).collect();
-                //println!("[DEBUG] json => {:?}", ul);
                 Some(ul)
             },
             _ => None,
@@ -162,7 +156,6 @@ pub struct Record {
 }
 impl Display for Record {
     fn show(&self, verbose: u8) {
-        //println!("[DEBUG] yahoo record → {:?}, {:?}, {:?}", self.summary, self.explain, self.verbose);
         // TODO: doesn't need `word` because summary has it
         show_summary(&self.summary);
         if !self.explain.as_array().unwrap().is_empty() {
@@ -183,7 +176,6 @@ fn show_summary(summary: &Value) {
 
     let pronounce = summary.get("pronounce").unwrap().as_array().unwrap();
     for value in pronounce {
-        //dbg!(&value);
         let vs = value.as_array().unwrap();
         print!("\x1b[0m{}\x1b[0m", vs[0].as_str().unwrap());
         print!("\x1b[37;1m{}\x1b[0m ", vs[1].as_str().unwrap());
@@ -194,7 +186,6 @@ fn show_summary(summary: &Value) {
 
     let explain = summary.get("explain").unwrap().as_array().unwrap();
     for value in explain {
-        //dbg!(&value);
         let vs = value.as_array().unwrap();
         match vs[0].as_str().unwrap() {
             "pos" => print!("  \x1b[31;1m{}\x1b[0m ", vs[1].as_str().unwrap()),
@@ -244,7 +235,6 @@ fn show_explain(explain: &Value) {
     };
 
     for exp in explain.as_array().unwrap().iter() {
-        //dbg!(exp);  // TODO: dbg or [DEBUG] log?
         let exp = exp.as_object().unwrap();
         match exp.get("type").unwrap().as_str().unwrap() {
             "PoS" => {
@@ -267,7 +257,6 @@ fn show_explain(explain: &Value) {
 // TODO: better data structure replaces json
 fn show_verbose(verbose: &Value) {
     for x in verbose.as_array().unwrap().iter() {
-        //println!("[DEBUG] x => {:?}", x);
         let x = x.as_array().unwrap();
         let (k, v) = (x[0].as_str().unwrap(), x[1].as_str().unwrap());
         match k {
