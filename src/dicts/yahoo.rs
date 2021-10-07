@@ -30,11 +30,8 @@ impl Lookup for Dict {
 }
 
 #[allow(clippy::many_single_char_names)]
-fn parse_summary(document: &NodeRef) -> Value {
+fn parse_summary(document: &NodeRef) -> Summary {
     let summary = document.select_first("div#web ol.searchCenterMiddle").unwrap();
-
-    let grammar = summary.as_node().select("div.dictionaryWordCard > ul > li").unwrap();
-    let grammar: Vec<_> = grammar.map(|s| s.text_contents()).collect();
 
     let nodes = summary.as_node().select("div.sys_dict_word_card > div.grp-main > div").unwrap();
     let nodes: Vec<_> = nodes.collect();
@@ -59,19 +56,20 @@ fn parse_summary(document: &NodeRef) -> Value {
     let explain = {
         let ms = e.as_node().select("ul > li div").unwrap();
         let ts: Vec<_> = ms.map(|m| {
-            let k = match m.attributes.borrow().get("class").unwrap() {
-                cls_attr if cls_attr.contains("pos_button") => "pos".to_string(),
-                cls_attr if cls_attr.contains("dictionaryExplanation") => "explain".to_string(),
-                _ => "?".to_string(),
-            };
-            (k, m.text_contents())
+            match m.attributes.borrow().get("class").unwrap() {
+                cls_attr if cls_attr.contains("pos_button") => SumExToken::PoS(m.text_contents()),
+                cls_attr if cls_attr.contains("dictionaryExplanation") => SumExToken::Explain(m.text_contents()),
+                _ => unreachable!(),
+            }
         }).collect();
         ts
     };
 
-    let summary = json!({"word": word, "pronounce": pronounce, "explain": explain, "grammar": grammar});
+    let grammar = summary.as_node().select("div.dictionaryWordCard > ul > li").unwrap();
+    let grammar = grammar.map(|s| s.text_contents()).collect::<Vec<_>>();
+    let grammar = if grammar.is_empty() { None } else { Some(grammar) };
 
-    summary
+    Summary { word, pronounce, explain, grammar }
 }
 
 macro_rules! next_text { ($nodes:expr) => ($nodes.next().unwrap().text_contents()) }
@@ -155,7 +153,7 @@ fn parse_verbose(document: &NodeRef) -> Option<Vec<VerToken>> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Content {
     version: u8,
-    summary: Value, // Summary,
+    summary: Summary,
     explain: Value, // Vec<ExToken>,
     // TODO: serialize to [] if null
     verbose: Option<Vec<VerToken>>,
@@ -163,9 +161,9 @@ pub struct Content {
 #[derive(Serialize, Deserialize, Debug)]
 struct Summary {
     word: String,
-    pronounce: Vec<[String;2]>,
+    pronounce: Option<Vec<(String, String)>>,
     explain: Vec<SumExToken>,
-    grammer: Vec<String>,
+    grammar: Option<Vec<String>>,
 }
 #[derive(Serialize, Deserialize, Debug)]
 enum SumExToken {
@@ -205,39 +203,29 @@ impl Display for Content {
     }
 }
 
-fn show_summary(summary: &Value) {
-    let word = summary.get("word").unwrap();
-    println!("\x1b[33m{}\x1b[0m", word.as_str().unwrap());
+fn show_summary(summary: &Summary) {
+    println!("\x1b[33m{}\x1b[0m", summary.word);
 
-    let pronounce = summary.get("pronounce").unwrap().as_array().unwrap();
-    for value in pronounce {
-        let vs = value.as_array().unwrap();
-        print!("\x1b[0m{}\x1b[0m", vs[0].as_str().unwrap());
-        print!("\x1b[37;1m{}\x1b[0m ", vs[1].as_str().unwrap());
-    }
-    if !pronounce.is_empty() {
+    if let Some(pronounce) = &summary.pronounce {
+        for (k, v) in pronounce {
+            print!("\x1b[0m{}\x1b[0m\x1b[37;1m{}\x1b[0m ", k, v);
+        }
         println!();
     }
 
-    let explain = summary.get("explain").unwrap().as_array().unwrap();
-    for value in explain {
-        let vs = value.as_array().unwrap();
-        match vs[0].as_str().unwrap() {
-            "pos" => print!("  \x1b[31;1m{}\x1b[0m ", vs[1].as_str().unwrap()),
-            "explain" => println!("\x1b[0m{}\x1b[0m", vs[1].as_str().unwrap()),
-            _ => unreachable!(),
+    for token in &summary.explain {
+        match token {
+            SumExToken::PoS(v) => print!("  \x1b[31;1m{}\x1b[0m ", v),
+            SumExToken::Explain(v) => println!("\x1b[0m{}\x1b[0m", v),
         }
     }
 
-    // XXX: grammar and pronounce are optional ?
-    let grammar = summary.get("grammar").unwrap().as_array().unwrap();
-    if !grammar.is_empty() {
+    if let Some(grammar) = &summary.grammar {
         println!();
+        for v in grammar {
+            println!("  \x1b[0m{}\x1b[0m", v);
+        }
     }
-    for value in grammar {
-        println!("  \x1b[0m{}\x1b[0m", value.as_str().unwrap());
-    }
-
 }
 
 fn show_explain(explain: &Value) {
@@ -290,7 +278,7 @@ fn show_explain(explain: &Value) {
 }
 
 fn show_verbose(verbose: &[VerToken]) {
-    for x in verbose.iter() {
+    for x in verbose {
         match x {
             VerToken::Title(v) => println!("\x1b[31;1m{}\x1b[0m", v),
             VerToken::Explain(v) => println!("  \x1b[0m{}\x1b[0m", v),
