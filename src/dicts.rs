@@ -17,6 +17,7 @@ macro_rules! register_dicts {
             let use_db_cache: bool = true;
 
             for word /* String */ in words.into_iter() {
+                // TODO: `get_lookup(dict_name: &str) -> lookup: Fn(...) -> ()`
                 match dict.as_str() {
                     $(
                     stringify!($d) => $d::Dict.lookup(word, use_db_cache, &opts),
@@ -40,14 +41,14 @@ trait Lookup {
     const API: &'static str ;
     const TITLE: &'static str ;
     const PROVIDER: &'static str ;
-    type Record: Display;
-    fn query(&self, url: &str) -> Self::Record;
+    type Content: Display;
+    fn query(&self, url: &str) -> Self::Content;
 
     fn get_url(&self, word: &str) -> String {
         Self::API.replace("{word}", word)
     }
-    fn query_db_cache(&self, _word: &str) -> Option<Self::Record> {
-        None /* Record { .... } */
+    fn query_db_cache(&self, _word: &str) -> Option<Self::Content> {
+        None /* Content { .... } */
     }
     fn save(&self, _record: &impl Display, _word: &str) {
         // TODO: implement

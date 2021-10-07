@@ -12,8 +12,8 @@ impl Lookup for Dict {
     const API: &'static str = "https://tw.dictionary.search.yahoo.com/search?p={word}";
     const TITLE: &'static str = "Yahoo Dictionary";
     const PROVIDER: &'static str = "yahoo";
-    type Record = Record;
-    fn query(&self, url: &str) -> Self::Record {
+    type Content = Record;
+    fn query(&self, url: &str) -> Self::Content {
         let response = reqwest::blocking::get(url).expect("...");
         let content = response.text().expect("...");
         let document = kuchiki::parse_html().one(content);

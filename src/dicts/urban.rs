@@ -1,6 +1,7 @@
 use super::{Lookup, Display};
+use serde::{Serialize, Deserialize};
 use reqwest;
-use serde_json::{from_str, Value};
+use serde_json;
 
 pub struct Dict;
 impl Lookup for Dict {
@@ -8,35 +9,37 @@ impl Lookup for Dict {
     const API: &'static str = "http://api.urbandictionary.com/v0/define?term={word}";
     const TITLE: &'static str = "Yahoo Dictionary";
     const PROVIDER: &'static str = "yahoo";
-    type Record = Record;
-    fn query(&self, url: &str) -> Self::Record {
-        let response = reqwest::blocking::get(url).expect("...");
-        let content = response.text().expect("...");
-
-        let content: Value = from_str(&content).expect("...");
-        Record { content }
+    type Content = Content;
+    fn query(&self, url: &str) -> Self::Content {
+        // TODO: handle `unwrap` below
+        let response = reqwest::blocking::get(url).unwrap();
+        let content = response.text().unwrap();
+        let content: Content = serde_json::from_str(&content).unwrap(); 
+        content
     }
 }
 
-pub struct Record {
-    content: Value,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Content {
+    list: Vec<Def>,
 }
-impl Display for Record {
+#[derive(Serialize, Deserialize, Debug)]
+struct Def {
+    word: String,
+    definition: String,
+    example: String,
+
+    #[serde(flatten)]
+    omitted: serde_json::Value,
+}
+impl Display for Content {
     fn show(&self, _verbose: u8) {
-        let list = &self.content["list"];
-
-        println!("\x1b[33m{}\x1b[0m", list[0]["word"].as_str().unwrap_or(""));
-
-        #[allow(clippy::never_loop)]
-        for data in list.as_array().unwrap_or(&vec![]).iter() {
-            println!("  \x1b[0m{}\x1b[0m", data["definition"].as_str().unwrap_or(""));
-
-            for line in data["example"].as_str().unwrap_or("").lines() {
-                println!("  \x1b[36m{}\x1b[0m", line);
-            }
-
-            println!();
-            break;
+        let def = &self.list[0];
+        println!("\x1b[33m{}\x1b[0m", def.word);
+        println!("  \x1b[0m{}\x1b[0m", def.definition);
+        for line in def.example.lines() {
+            println!("  \x1b[36m{}\x1b[0m", line);
         }
+        println!();
     }
 }
