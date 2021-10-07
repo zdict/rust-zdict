@@ -1,4 +1,5 @@
 use super::{Lookup, Display};
+use serde::{Serialize, Deserialize};
 use reqwest;
 use kuchiki::traits::*;
 use kuchiki::{NodeRef, NodeDataRef, ElementData};
@@ -12,13 +13,15 @@ impl Lookup for Dict {
     const API: &'static str = "https://tw.dictionary.search.yahoo.com/search?p={word}";
     const TITLE: &'static str = "Yahoo Dictionary";
     const PROVIDER: &'static str = "yahoo";
-    type Content = Record;
+    type Content = Content;
     fn query(&self, url: &str) -> Self::Content {
-        let response = reqwest::blocking::get(url).expect("...");
-        let content = response.text().expect("...");
+        // TODO: handle `unwrap` below
+        let response = reqwest::blocking::get(url).unwrap();
+        let content = response.text().unwrap();
         let document = kuchiki::parse_html().one(content);
 
-        Record {
+        Content {
+            version: 2_u8,
             summary: parse_summary(&document),
             explain: parse_explain(&document),
             verbose: parse_verbose(&document),
@@ -119,42 +122,74 @@ fn parse_explain(document: &NodeRef) -> Value {
     explain
 }
 
-fn parse_verbose(document: &NodeRef) -> Value {
-    let synonyms = if let Ok(synonyms) = document.select_first("div.tab-content-synonyms") {
-        synonyms
-    } else {
-        return json!([]);
-    };
+fn parse_verbose(document: &NodeRef) -> Option<Vec<VerToken>> {
+    let synonyms = document.select_first("div.tab-content-synonyms");
+    if synonyms.is_err() {
+        return None;
+    }
 
+    let synonyms = synonyms.unwrap();
     let verbose = synonyms.as_node().children().elements().map(|elm| {
         match elm.name.local {
             local_name!("div") => {
                 if let Ok(span) = elm.as_node().select_first(".fw-xl") {
-                    Some(vec![json!(["title", span.text_contents()])])
+                    Some(vec![VerToken::Title(span.text_contents())])
                 } else if let Ok(span) = elm.as_node().select_first(".fw-500") {
-                    Some(vec![json!(["explain", span.text_contents()])])
+                    Some(vec![VerToken::Explain(span.text_contents())])
                 } else {
                     None
                 }
             },
             local_name!("ul") => {
                 Some(elm.as_node().select("li > span").unwrap().map(|span|
-                    json!(["item", span.text_contents()])
+                    VerToken::Item(span.text_contents())
                 ).collect())
             },
             _ => None,
         }
     }).flatten().flatten().collect();
-
-    verbose
+    Some(verbose)
 }
 
-pub struct Record {
-    summary: Value,
-    explain: Value,
-    verbose: Value,
+// TODO: #[serde(with = "module")]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Content {
+    version: u8,
+    summary: Value, // Summary,
+    explain: Value, // Vec<ExToken>,
+    // TODO: serialize to [] if null
+    verbose: Option<Vec<VerToken>>,
 }
-impl Display for Record {
+#[derive(Serialize, Deserialize, Debug)]
+struct Summary {
+    word: String,
+    pronounce: Vec<[String;2]>,
+    explain: Vec<SumExToken>,
+    grammer: Vec<String>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+enum SumExToken {
+    PoS(String),
+    Explain(String),
+}
+#[derive(Serialize, Deserialize, Debug)]
+// TODO: #[serde(tag = "type")]
+enum ExToken {
+    PoS { text: String },
+    Item { text: String, sentence: Vec<SenToken> },
+}
+#[derive(Serialize, Deserialize, Debug)]
+enum SenToken {
+    Plain(String),
+    Bold(String),
+}
+#[derive(Serialize, Deserialize, Debug)]
+enum VerToken {
+    Title(String),
+    Explain(String),
+    Item(String),
+}
+impl Display for Content {
     fn show(&self, verbose: u8) {
         // TODO: doesn't need `word` because summary has it
         show_summary(&self.summary);
@@ -162,9 +197,9 @@ impl Display for Record {
             println!();
             show_explain(&self.explain);
         }
-        if verbose > 0 && !self.verbose.as_array().unwrap().is_empty() {
+        if verbose > 0 && self.verbose.is_some() {
             println!();
-            show_verbose(&self.verbose);
+            show_verbose(self.verbose.as_ref().unwrap());
         }
         println!();
     }
@@ -254,16 +289,12 @@ fn show_explain(explain: &Value) {
     }
 }
 
-// TODO: better data structure replaces json
-fn show_verbose(verbose: &Value) {
-    for x in verbose.as_array().unwrap().iter() {
-        let x = x.as_array().unwrap();
-        let (k, v) = (x[0].as_str().unwrap(), x[1].as_str().unwrap());
-        match k {
-            "title" => println!("\x1b[31;1m{}\x1b[0m", v),
-            "explain" => println!("  \x1b[0m{}\x1b[0m", v),
-            "item" => println!("    \x1b[36m{}\x1b[0m", v),
-            _ => unreachable!(),
+fn show_verbose(verbose: &[VerToken]) {
+    for x in verbose.iter() {
+        match x {
+            VerToken::Title(v) => println!("\x1b[31;1m{}\x1b[0m", v),
+            VerToken::Explain(v) => println!("  \x1b[0m{}\x1b[0m", v),
+            VerToken::Item(v) => println!("    \x1b[36m{}\x1b[0m", v),
         }
     }
 }
