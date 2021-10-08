@@ -232,22 +232,20 @@ fn show_explain(explain: &[ExToken]) {
                 {
                     let mut is_line_start = true;
                     for s in sentence {
+                        if is_line_start {
+                            print!("    ");
+                            is_line_start = false;
+                        }
                         match s {
-                            SenToken::Plain(s) if s == "\n" => {
-                                println!();
-                                is_line_start = true;
-                            },
-                            SenToken::Plain(s) if is_line_start => {
-                                print!("    \x1b[36m{}\x1b[0m", s);
-                                is_line_start = false;
-                            },
-                            SenToken::Plain(s) => {
+                            SenToken::Plain(s) if s != "\n" => {
                                 print!("\x1b[36m{}\x1b[0m", s);
-                                is_line_start = false;
                             },
                             SenToken::Bold(s) => {
                                 print!("\x1b[36;1m{}\x1b[0m", s);
-                                is_line_start = false;
+                            },
+                            SenToken::Plain(_) => {
+                                println!();
+                                is_line_start = true;
                             },
                         }
                     }
