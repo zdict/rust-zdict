@@ -22,6 +22,7 @@ description = "Look up words via online dictionaries"
 #homepage = ""
 #repository = ""
 
+
 [dependencies]
 clap = { version = "3.0.0-beta.4", features = ["yaml"] }
 
@@ -34,3 +35,8 @@ kuchiki = "*"
 
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
+
+
+[[bin]]
+name = "zd"
+path = "src/main.rs"
