@@ -1,9 +1,10 @@
 mod cli;
 mod dict3;
 use dict3 as dicts;
-mod db;
+#[allow(dead_code, unused_variables)] mod db;
 
 fn main() {
+    env_logger::init();
     let opts = cli::parse_opts();
 
     if opts.subcmd.is_some() {
@@ -18,6 +19,8 @@ fn main() {
             .. opts
         };
         for word in words.as_slice() {
+            log::info!("lookup word {:?} by dict named {:?}", word, dict_name);
+            log::debug!("options: {:?}", &opts);
             dicts::lookup(word, dict_name, &db_cache, &opts);
         }
     }

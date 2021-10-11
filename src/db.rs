@@ -4,9 +4,9 @@ const TABLE_NAME: &str = "record";
 
 #[derive(Debug)]
 pub struct Record {
-    pub word: String,
-    pub source: String,
-    pub content: String,
+    word: String,
+    source: String,
+    content: String,
 }
 
 pub fn get_conn(pathbuf: std::path::PathBuf) -> Result<Connection> {
@@ -53,15 +53,33 @@ pub fn main() {
 
 
 
-pub struct Cache;
+pub struct Cache {
+    readable: bool,
+}
+
 impl Cache {
-    pub fn new(_disable: bool) -> Self { Cache }
-    pub fn query(&self, word: &str, info_name: &str) -> Option<Record> {
-        Some(Record {
-            word: word.into(),
-            source: info_name.into(),
-            content: "content".into(),
-        })
+    pub fn new(disable_db_cache: bool) -> Self {
+        let readable = !disable_db_cache;
+        log::debug!("set cache `readable` to {:?}", readable);
+        Cache { readable }
     }
-    pub fn save(&self, _word: &str, _info_name: &str, _content: &str) {}
+    pub fn query(&self, word: &str, info_name: &str) -> Option<String> {
+        if !self.readable {
+            log::info!("bypass query");
+            return None;
+        }
+
+        log::info!("query by {}-{}", word, info_name);
+        // placeholder
+        if word == "ground" { // not found
+            log::debug!("found record");
+            Some("content string".into())
+        } else {
+            log::debug!("record not found");
+            None
+        }
+    }
+    pub fn save(&self, word: &str, info_name: &str, content: &str) {
+        log::info!("save record: {}-{}-{}", word, info_name, content);
+    }
 }

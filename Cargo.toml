@@ -31,6 +31,8 @@ kuchiki = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 rusqlite = "*"
+log = "*"
+env_logger = "*"
 
 
 [[bin]]

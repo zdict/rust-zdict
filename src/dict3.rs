@@ -10,9 +10,9 @@ pub fn lookup(word: &str, dict_name: &str, db_cache: &Cache, opts: &Opts) {
     if opts.show_provider { println!("\x1b[34m[{}]\x1b[0m", info.provider); }
     if opts.show_url { println!("\x1b[34m({})\x1b[0m", url); }
 
-    if let Some(ref record) = db_cache.query(word, info.name) {
+    if let Some(content_string) = db_cache.query(word, info.name) {
         match dict_name {
-            "yahoo" => yahoo::Content::from_str(record.content.as_str()).show(),
+            "yahoo" => yahoo::Content::from_str(content_string.as_str()).show(),
             _ => unreachable!(),
         };
     } else {
@@ -40,14 +40,27 @@ mod yahoo {
         format!("http://yahoo/{word}", word=word)
     }
     pub(super) const INFO: Info = Info {
-        provider: "yahoo provider",
-        name: "yahoo name",
+        provider: "yahoo_provider",
+        name: "yahoo_name",
     };
     pub(super) struct Content;
     impl Content {
-        pub(super) fn show(&self) {}
-        pub(super) fn from_str(_serialized: &str) -> Self { Content }
-        pub(super) fn to_string(&self) -> String { "serialized self".to_string() }
+        pub(super) fn show(&self) {
+            log::info!("show content");
+        }
+        pub(super) fn from_str(_serialized: &str) -> Self {
+            log::info!("deserialize content string");
+            Content
+        }
     }
-    pub(super) fn query(_word: &str) -> Content { Content }
+    impl ToString for Content {
+        fn to_string(&self) -> String {
+            log::info!("serialize content to string");
+            "serialized_self".to_string()
+        }
+    }
+    pub(super) fn query(_word: &str) -> Content {
+        log::info!("querying ...");
+        Content
+    }
 }
