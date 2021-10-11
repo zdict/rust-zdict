@@ -4,9 +4,9 @@ const TABLE_NAME: &str = "record";
 
 #[derive(Debug)]
 pub struct Record {
-    word: String,
-    source: String,
-    content: String,
+    pub word: String,
+    pub source: String,
+    pub content: String,
 }
 
 pub fn get_conn(pathbuf: std::path::PathBuf) -> Result<Connection> {
@@ -49,4 +49,19 @@ pub fn main() {
     //record.unwrap();
     //if let Ok(record) = record { dbg!(record); } else { println!("Nothing"); }
     //set(&conn, &Record{word:"1".to_string(),source:"3".to_string(),content:"9".to_string()});
+}
+
+
+
+pub struct Cache;
+impl Cache {
+    pub fn new(_disable: bool) -> Self { Cache }
+    pub fn query(&self, word: &str, info_name: &str) -> Option<Record> {
+        Some(Record {
+            word: word.into(),
+            source: info_name.into(),
+            content: "content".into(),
+        })
+    }
+    pub fn save(&self, _word: &str, _info_name: &str, _content: &str) {}
 }
