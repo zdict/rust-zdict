@@ -7,7 +7,7 @@ pub fn lookup(word: &str, dict_name: &str, db_cache: &Cache, opts: &Opts) {
         _ => unreachable!(),
     };
 
-    if opts.show_provider { println!("\x1b[34m[{}]\x1b[0m", info.provider); }
+    if opts.show_provider { println!("\x1b[34m[{}]\x1b[0m", info.name); }
     if opts.show_url { println!("\x1b[34m({})\x1b[0m", url); }
 
     if let Some(content_string) = db_cache.query(word, info.name) {
@@ -28,11 +28,15 @@ pub fn lookup(word: &str, dict_name: &str, db_cache: &Cache, opts: &Opts) {
 }
 
 struct Info {
-    provider: &'static str,
     name: &'static str,
+    title: &'static str,
+    homepage_url: &'static str,
 }
 
-trait Lookup<'a> {}
+pub fn list_dicts() {
+    let info = yahoo::INFO;
+    println!("{}: {}\n{}\n", info.name, info.title, info.homepage_url);
+}
 
 mod yahoo {
     use super::Info;
@@ -40,8 +44,9 @@ mod yahoo {
         format!("http://yahoo/{word}", word=word)
     }
     pub(super) const INFO: Info = Info {
-        provider: "yahoo_provider",
-        name: "yahoo_name",
+        name: "yahoo",
+        title: "Yahoo Dictionary",
+        homepage_url: "https://...",
     };
     pub(super) struct Content;
     impl Content {

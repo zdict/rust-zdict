@@ -8,7 +8,7 @@ fn main() {
     let opts = cli::parse_opts();
 
     if opts.subcmd.is_some() {
-        //dicts::list_dicts();
+        dicts::list_dicts();
     } else {
         let words = opts.words;
         let db_cache = db::Cache::new(opts.disable_db_cache);
