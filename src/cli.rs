@@ -43,6 +43,9 @@ pub struct Opts {
     #[clap(max_occurrences=2, parse(from_occurrences))]
     pub verbose: u8,
 
+    #[clap(short, long, about = "Temporarily not using the result from db cache. (still save the result into db)")]
+    pub disable_db_cache: bool,
+
     #[clap(subcommand)]
     pub subcmd: Option<SubCommand>,
 }

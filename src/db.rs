@@ -50,3 +50,36 @@ pub fn main() {
     //if let Ok(record) = record { dbg!(record); } else { println!("Nothing"); }
     //set(&conn, &Record{word:"1".to_string(),source:"3".to_string(),content:"9".to_string()});
 }
+
+
+
+pub struct Cache {
+    readable: bool,
+}
+
+impl Cache {
+    pub fn new(disable_db_cache: bool) -> Self {
+        let readable = !disable_db_cache;
+        log::debug!("set cache `readable` to {:?}", readable);
+        Cache { readable }
+    }
+    pub fn query(&self, word: &str, info_name: &str) -> Option<String> {
+        if !self.readable {
+            log::info!("bypass query");
+            return None;
+        }
+
+        log::info!("query by {}-{}", word, info_name);
+        // placeholder
+        if word == "ground" { // not found
+            log::debug!("found record");
+            Some("content string".into())
+        } else {
+            log::debug!("record not found");
+            None
+        }
+    }
+    pub fn save(&self, word: &str, info_name: &str, content: &str) {
+        log::info!("save record: {}-{}-{}", word, info_name, content);
+    }
+}
