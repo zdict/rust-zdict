@@ -23,8 +23,7 @@ macro_rules! register_dicts {
         }
 
     };
-}
-register_dicts! { yahoo }
+} register_dicts! { yahoo, urban }
 
 
 #[derive(Debug)]
@@ -55,13 +54,16 @@ trait Lookup {
             println!("\x1b[34m({})\x1b[0m", url);
         }
 
-        if let Some(content_string) = db_cache.query(word, info.name) {
-            Self::Content::from_json_str(content_string.as_str()).show()
-        } else {
-            let content = Self::query(url.as_str());
-            db_cache.save(word, info.name, content.to_json_string().as_str());
-            content.show()
-        }
+        let content = {
+            if let Some(content_string) = db_cache.query(word, info.name) {
+                Self::Content::from_json_str(content_string.as_str())
+            } else {
+                let content = Self::query(url.as_str());
+                db_cache.save(word, info.name, content.to_json_string().as_str());
+                content
+            }
+        };
+        content.show(opts.verbose);
     }
 }
 
@@ -71,5 +73,5 @@ trait InnerStruct {
 
     fn to_json_string(&self) -> String;
 
-    fn show(&self);
+    fn show(&self, verbose: u8);
 }
