@@ -1,14 +1,13 @@
 mod cli;
-mod dict3;
-use dict3 as dicts;
-#[allow(dead_code, unused_variables)] mod db;
+mod dict;
+mod db;
 
 fn main() {
     env_logger::init();
     let opts = cli::parse_opts();
 
     if opts.subcmd.is_some() {
-        dicts::list_dicts();
+        dict::list_dicts();
     } else {
         let words = opts.words;
         let db_cache = &db::Cache::new(opts.disable_db_cache);
@@ -21,7 +20,7 @@ fn main() {
         for word in words.as_slice() {
             log::info!("lookup word {:?} by dict named {:?}", word, dict_name);
             log::debug!("options: {:?}", opts);
-            dicts::lookup(word, dict_name, db_cache, opts);
+            dict::lookup(word, dict_name, db_cache, opts);
         }
     }
 }
