@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use super::{Info, Lookup, InnerStruct};
+use super::{Info, Lookup, InnerStruct, QueryError, QueryResult, SerdeResult};
 
 
 pub(super) struct Dict;
@@ -15,17 +15,20 @@ impl Lookup for Dict {
     };
 
     fn get_query_url(word: &str) -> String {
-        format!("http://api.urbandictionary.com/v0/define?term={word}", word=word)
+        format!("http://api.urbandictionary.comm/v0/define?term={word}", word=word)
     }
 
-    fn query(url: &str) -> Self::Content {
+    fn query(url: &str) -> QueryResult<Self::Content> {
         log::debug!("url: {}", url);
         log::info!("querying ...");
-
-        let response = reqwest::blocking::get(url).unwrap();
-        let content = &response.text().unwrap();
-
-        serde_json::from_str(content).unwrap()
+        let response = reqwest::blocking::get(url)?;
+        let content_string = response.text()?;
+        let content: Content = serde_json::from_str(content_string.as_str())?;
+        log::debug!("content: {:?}", content);
+        if content.list.is_empty() {
+            return Err(QueryError::NotFound);
+        }
+        Ok(content)
     }
 }
 
@@ -46,15 +49,9 @@ struct Def {
 }
 
 impl InnerStruct for Content {
-    fn from_json_str(serialized: &str) -> Self {
-        log::info!("deserialize content string");
-        serde_json::from_str(serialized).unwrap()
-    }
+    fn from_str(s: &str) -> SerdeResult<Self> { serde_json::from_str(s) }
 
-    fn to_json_string(&self) -> String {
-        log::info!("serialize content to string");
-        serde_json::to_string(self).unwrap()
-    }
+    fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
     fn show(&self, _verbose: u8) {
         log::info!("show content");
