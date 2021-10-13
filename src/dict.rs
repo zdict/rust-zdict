@@ -14,16 +14,21 @@ macro_rules! register_dicts {
         }
 
         pub fn lookup_words(opts: Opts, db_cache: Cache) {
-            let (opts, db_cache) = (&opts, &db_cache);
             let dict_name = opts.dict.as_ref().map_or("yahoo", |n| n.as_str());
+            let words = opts.words;
+            let opts = Opts {
+                dict: Default::default(),
+                words: Default::default(),
+                .. opts
+            };
             match dict_name {
-              $(
+                $(
                 stringify!($d) => {
-                    for word in opts.words.as_slice() {
-                        lookup::<$d::Entry>(word, db_cache, opts);
+                    for word in words {
+                        lookup::<$d::Entry>(&word, &db_cache, &opts);
                     }
                 },
-              )+
+                )+
                 _ => unreachable!(),
             }
         }
@@ -90,6 +95,8 @@ fn lookup<Entry: Lookup>(word: &str, db_cache: &Cache, opts: &Opts) {
 
     if opts.disable_db_cache {
         log::info!("bypass read cache");
+    } else if db_cache.conn.is_none() {
+        todo!("warn cache not work");
     } else {
         //match Some("{\"list\":[{\"word\":\"ailin\",\"definition\":\"...\",\"example\":\"\"}]}".to_string()) {
         match db_cache.query(word, Entry::DICT.name) {

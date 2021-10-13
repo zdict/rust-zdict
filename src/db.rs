@@ -1,85 +1,82 @@
 use rusqlite::{Connection, Result};
 
-const TABLE_NAME: &str = "record";
 
-#[derive(Debug)]
-pub struct Record {
-    word: String,
-    source: String,
-    content: String,
+#[derive(Default)]
+pub struct Cache {
+    pub conn: Option<Connection>,
 }
 
-pub fn get_conn(pathbuf: std::path::PathBuf) -> Result<Connection> {
-    // below create a new db if non-existing
-    let conn = Connection::open(pathbuf)?;
-    Ok(conn)
-}
+impl Cache {
+    pub fn new() -> Self {
+        let home = match std::env::var_os("HOME") {
+            None => {
+                log::warn!("missing env var $HOME");
+                return Default::default();
+            }
+            Some(v) => v,
+        };
 
-// generate path
-// create a new db if non-existing
-// create a new table if non-existing
+        log::debug!("$HOME = {:?}", home);
+        let home = std::path::Path::new(home.as_os_str());
+        let db_dir = &home.join(".zd/");
+        let db_file = &db_dir.join("zd.db");
 
-fn get(conn: &Connection, word: &str, source: &str) -> Result<Record> {
-    conn.query_row (
-        "SELECT * FROM record WHERE word = $1 AND source = $2",
-        [word, source],
-        |row| Ok(Record {
-            word: row.get("word")?,
-            source: row.get("source")?,
-            content: row.get("content")?,
+        log::debug!("create {:?} if not exists", db_dir);
+        if let Err(err) = std::fs::create_dir_all(db_dir) {
+            log::warn!("unable to create {:?}, error: {}", db_dir, err);
+            return Default::default();
+        }
+
+        log::debug!("create and connect {:?} if not exists", db_file);
+        let conn = Connection::open(db_file).and_then(|conn| {
+            log::debug!("create table if not exists");
+            conn.execute("\
+                CREATE TABLE IF NOT EXISTS \"record\" (\
+                    \"word\" TEXT NOT NULL, \
+                    \"source\" VARCHAR(255) NOT NULL, \
+                    \"content\" TEXT NOT NULL, \
+                    PRIMARY KEY (\"word\", \"source\")\
+                );\
+            ", [])
+            .and(Ok(conn))
+        });
+        if let Err(err) = conn {
+            log::warn!("db error occur: {}", err);
+            return Default::default();
+        }
+
+        Cache { conn: conn.ok() }
+    }
+
+    pub fn query(&self, word: &str, source: &str) -> Option<String> {
+        self.conn.as_ref().and_then(|conn| {
+            conn.query_row (
+                "SELECT * FROM record WHERE word = $1 AND source = $2",
+                [word, source],
+                |row| row.get("content"),
+            ).map_err(|err| {
+                log::warn!("db error occur: {}", err);
+            }).ok()
         })
-    )
-}
-
-fn set(conn: &Connection, record: &Record) -> Result<()> {
-    match conn.execute(
-        "INSERT OR REPLACE INTO record (word,source,content) VALUES ($1,$2,$3)",
-        [&record.word, &record.source, &record.content],
-    ) {
-        Ok(_ /* number of rows been updated, always 1 */) => Ok(()),
-        Err(e) => Err(e),
+    }
+    fn save(&self, word: &str, source: &str, content: &str) {
+        self.conn.as_ref().map(|conn| {
+            conn.execute(
+                "INSERT OR REPLACE INTO record (word,source,content) VALUES ($1,$2,$3)",
+                [word, source, content],
+            ).map_err(|err| {
+                log::warn!("db error occur: {}", err);
+            })
+        });
     }
 }
 
 pub fn main() {
-    let home = std::env::var_os("HOME").unwrap();
-    let db_path = std::path::Path::new(&home).join(".zdict/zdict.db");
-    let conn = get_conn(db_path).expect("IMO, if db conn failed, just fallback");
-    //let record = get(&conn, "love", "yahoo");
-    //record.unwrap();
-    //if let Ok(record) = record { dbg!(record); } else { println!("Nothing"); }
-    //set(&conn, &Record{word:"1".to_string(),source:"3".to_string(),content:"9".to_string()});
-}
-
-
-
-pub struct Cache {
-    readable: bool,
-}
-
-impl Cache {
-    pub fn new(disable_db_cache: bool) -> Self {
-        let readable = !disable_db_cache;
-        log::debug!("set cache `readable` to {:?}", readable);
-        Cache { readable }
-    }
-    pub fn query(&self, word: &str, info_name: &str) -> Option<String> {
-        if !self.readable {
-            log::info!("bypass query");
-            return None;
-        }
-
-        log::info!("query by {}-{}", word, info_name);
-        // placeholder
-        if word == "ground" { // not found
-            log::debug!("found record");
-            Some("content string".into())
-        } else {
-            log::debug!("record not found");
-            None
-        }
-    }
-    pub fn save(&self, word: &str, info_name: &str, content: &str) {
-        log::info!("save record: {}-{}-{}", word, info_name, content);
-    }
+    let db_cache = Cache::new();
+    assert!(db_cache.conn.is_some());
+    let s = db_cache.query("1", "2");
+    dbg!(s);
+    db_cache.save("1","2","3");
+    let s = db_cache.query("1", "2");
+    dbg!(s);
 }
