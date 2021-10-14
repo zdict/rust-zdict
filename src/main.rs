@@ -4,6 +4,7 @@ mod db;
 
 fn main() {
     env_logger::init();
+
     let opts = cli::parse_opts();
 
     if opts.subcmd.is_some() {

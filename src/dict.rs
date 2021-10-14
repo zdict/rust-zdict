@@ -13,7 +13,12 @@ macro_rules! register_dicts {
             )+
         }
 
-        pub fn lookup_words(opts: Opts, db_cache: Cache) {
+        pub fn lookup_words(opts: Opts, db_cache: Option<Cache>) {
+            if db_cache.is_none() {
+                // TODO
+                println!("alert db cache unavailable")
+            }
+
             let dict_name = opts.dict.as_ref().map_or("yahoo", |n| n.as_str());
             let words = opts.words;
             let opts = Opts {
@@ -25,7 +30,7 @@ macro_rules! register_dicts {
                 $(
                 stringify!($d) => {
                     for word in words {
-                        lookup::<$d::Entry>(&word, &db_cache, &opts);
+                        lookup::<$d::Entry>(&word, &opts, db_cache.as_ref());
                     }
                 },
                 )+
@@ -83,7 +88,7 @@ trait Lookup {
 }
 
 
-fn lookup<Entry: Lookup>(word: &str, db_cache: &Cache, opts: &Opts) {
+fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
     let url = Entry::get_query_url(word);
 
     if opts.show_provider {
@@ -95,11 +100,8 @@ fn lookup<Entry: Lookup>(word: &str, db_cache: &Cache, opts: &Opts) {
 
     if opts.disable_db_cache {
         log::info!("bypass read cache");
-    } else if db_cache.conn.is_none() {
-        todo!("warn cache not work");
-    } else {
-        //match Some("{\"list\":[{\"word\":\"ailin\",\"definition\":\"...\",\"example\":\"\"}]}".to_string()) {
-        match db_cache.query(word, Entry::DICT.name) {
+    } else if let Some(cache) = db_cache {
+        match cache.query(word, Entry::DICT.name) {
             None => log::info!("cache not found"),
             Some(cached) => {
                 match Entry::from_str(cached.as_str()) {
@@ -121,10 +123,14 @@ fn lookup<Entry: Lookup>(word: &str, db_cache: &Cache, opts: &Opts) {
     match Entry::query(url.as_str()) {
         Err(err) => show_failure::<Entry>(err, word),
         Ok(entry) => {
-            //db_cache.save(word, Entry::DICT.name, entry.to_string().as_str());
+            if let Ok(ser_entry) = entry.to_string() {
+                if let Some(cache) = db_cache {
+                    cache.save(word, Entry::DICT.name, &ser_entry);
+                }
+            }
             entry.show(opts.verbose);
         },
-    }
+    };
 }
 
 fn show_failure<Entry: Lookup>(err: QueryError, word: &str) {

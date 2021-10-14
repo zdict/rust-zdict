@@ -35,12 +35,12 @@ impl Lookup for Entry {
     fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
     fn query(url: &str) -> QueryResult<Self> {
-        log::debug!("url: {}", url);
+        log::debug!("url: {:?}", url);
         log::info!("querying ...");
         let response = reqwest::blocking::get(url)?;
         let entry_string = response.text()?;
         let entry: Self = serde_json::from_str(entry_string.as_str())?;
-        log::debug!("entry: {:?}", entry);
+        log::trace!("entry: {:?}", entry);
         if entry.list.is_empty() {
             return Err(QueryError::NotFound);
         }
