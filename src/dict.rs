@@ -88,48 +88,50 @@ fn lookup<Entry: Lookup>(word: &str, db_cache: &Cache, opts: &Opts) {
         println!("\x1b[34m({})\x1b[0m", url);
     }
 
-    let mut done = false;
-    if !opts.disable_db_cache {
-        if let Some(cached) =  db_cache.query(word, Entry::DICT.name) {
-            match Entry::from_str(cached.as_str()) {
-                Ok(content) => {
-                    content.show(opts.verbose);
-                    done = true;
-                },
-                Err(err) => {
-                    // TODO: handle error and print/log out
-                    log::warn!("fail to parse cached string");
-                    log::debug!("cached: {}", cached);
-                    log::debug!("err: {:?}", err);
-                },
-            }
-        } else {
-            log::info!("cache not found");
+    if opts.disable_db_cache {
+        log::info!("bypass read cache");
+    } else {
+        //match Some("{\"list\":[{\"word\":\"ailin\",\"definition\":\"...\",\"example\":\"\"}]}".to_string()) {
+        match db_cache.query(word, Entry::DICT.name) {
+            None => log::info!("cache not found"),
+            Some(cached) => {
+                match Entry::from_str(cached.as_str()) {
+                    Err(err) => {
+                        log::warn!("unexpected fail to parse cached entry");
+                        log::debug!("cached: {}", cached);
+                        log::debug!("err: {:?}", err);
+                    },
+                    Ok(entry) => {
+                        entry.show(opts.verbose);
+                        return;
+                    },
+                }
+            },
         }
     }
 
-    if !done {
-        // TODO: handle error and print/log out
-        match Entry::query(url.as_str()) {
-            Ok(content) => {
-                //db_cache.save(word, Entry::DICT.name, content.to_string().as_str());
-                content.show(opts.verbose);
-            },
-            Err(err) => {
-                println!("{}", match err {
-                    QueryError::NotFound => format!("\x1b[33m\"{}\" not found!\x1b[0m", word),
-                    _ => format!("\
-                        ================================================================================\n\
-                        Entryionary: {} ({})\n\
-                        Word: '{}'\n\
-                        ================================================================================\n\
-                        \n\
-                        Houston, we got a problem 😢\n\
-                        Please report the error message above to https://github.com/zdict/zdict/issues\
-                    ", Entry::DICT.title, Entry::DICT.name, word),
-                });
-                log::debug!("{:?}", err);
-            },
-        }
+    // TODO: handle error and print/log out
+    match Entry::query(url.as_str()) {
+        Err(err) => show_failure::<Entry>(err, word),
+        Ok(entry) => {
+            //db_cache.save(word, Entry::DICT.name, entry.to_string().as_str());
+            entry.show(opts.verbose);
+        },
     }
+}
+
+fn show_failure<Entry: Lookup>(err: QueryError, word: &str) {
+    log::debug!("{:?}", err);
+    println!("{}", match err {
+        QueryError::NotFound => format!("\x1b[33m\"{}\" not found!\x1b[0m", word),
+        _ => format!("\
+            ================================================================================\n\
+            Entryionary: {} ({})\n\
+            Word: '{}'\n\
+            ================================================================================\n\
+            \n\
+            Houston, we got a problem 😢\n\
+            Please report the error message above to https://github.com/zdict/zdict/issues\
+        ", Entry::DICT.title, Entry::DICT.name, word),
+    });
 }
