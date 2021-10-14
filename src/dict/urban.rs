@@ -1,40 +1,10 @@
 use serde::{Serialize, Deserialize};
 
-use super::{Info, Lookup, InnerStruct, QueryError, QueryResult, SerdeResult};
-
-
-pub(super) struct Dict;
-
-impl Lookup for Dict {
-    type Content = Content;
-
-    const INFO: Info = Info {
-        name: "urban",
-        title: "Urban Dictionary",
-        homepage_url: "https://www.urbandictionary.com/",
-    };
-
-    fn get_query_url(word: &str) -> String {
-        format!("http://api.urbandictionary.comm/v0/define?term={word}", word=word)
-    }
-
-    fn query(url: &str) -> QueryResult<Self::Content> {
-        log::debug!("url: {}", url);
-        log::info!("querying ...");
-        let response = reqwest::blocking::get(url)?;
-        let content_string = response.text()?;
-        let content: Content = serde_json::from_str(content_string.as_str())?;
-        log::debug!("content: {:?}", content);
-        if content.list.is_empty() {
-            return Err(QueryError::NotFound);
-        }
-        Ok(content)
-    }
-}
+use super::{Dict, Lookup, QueryError, QueryResult, SerdeResult};
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Content {
+pub(super) struct Entry {
     list: Vec<Def>,
 }
 
@@ -48,13 +18,37 @@ struct Def {
     omitted: serde_json::Value,
 }
 
-impl InnerStruct for Content {
+
+impl Lookup for Entry {
+    const DICT: Dict = Dict {
+        name: "urban",
+        title: "Urban Dictionary",
+        homepage_url: "https://www.urbandictionary.com/",
+    };
+
+    fn get_query_url(word: &str) -> String {
+        format!("http://api.urbandictionary.com/v0/define?term={word}", word=word)
+    }
+
     fn from_str(s: &str) -> SerdeResult<Self> { serde_json::from_str(s) }
 
     fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
+    fn query(url: &str) -> QueryResult<Self> {
+        log::debug!("url: {}", url);
+        log::info!("querying ...");
+        let response = reqwest::blocking::get(url)?;
+        let entry_string = response.text()?;
+        let entry: Self = serde_json::from_str(entry_string.as_str())?;
+        log::debug!("entry: {:?}", entry);
+        if entry.list.is_empty() {
+            return Err(QueryError::NotFound);
+        }
+        Ok(entry)
+    }
+
     fn show(&self, _verbose: u8) {
-        log::info!("show content");
+        log::info!("show entry");
         let def = &self.list[0];
         println!("\x1b[33m{}\x1b[0m", def.word);
         println!("  \x1b[0m{}\x1b[0m", def.definition);
