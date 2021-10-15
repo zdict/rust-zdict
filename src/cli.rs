@@ -1,6 +1,6 @@
 use clap::{AppSettings, Clap};
 
-#[derive(Clap, Debug, PartialEq)]
+#[derive(Clap, Debug, PartialEq, Default)]
 #[clap(name = "zdict")]
 //#[clap(version = env!("CARGO_PKG_VERSION"))]
 //#[clap(settings = &[AppSettings::ColoredHelp])]  // not support `setting *s*` yet
@@ -86,12 +86,8 @@ mod opts_design {
     fn list_dict() {
         let parsed_opts = Opts::try_parse_from(&["zd", "dicts"]).unwrap();
         assert_eq!(parsed_opts, Opts {
-            words: vec![],
-            show_provider: false,
-            show_url: false,
-            dict: None,
-            verbose: 0,
             subcmd: Some(SubCommand::ListDicts),
+            .. Default::default()
         });
     }
 
@@ -106,11 +102,7 @@ mod opts_design {
         let parsed_opts = Opts::try_parse_from(&["zd", "moe"]).unwrap();
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["moe"],
-            show_provider: false,
-            show_url: false,
-            dict: None,
-            verbose: 0,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
@@ -119,11 +111,7 @@ mod opts_design {
         let parsed_opts = Opts::try_parse_from(&["zd", "moe", "moe", "moe"]).unwrap();
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["moe", "moe", "moe"],
-            show_provider: false,
-            show_url: false,
-            dict: None,
-            verbose: 0,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
@@ -133,10 +121,7 @@ mod opts_design {
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["moe"],
             show_provider: true,
-            show_url: false,
-            dict: None,
-            verbose: 0,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
@@ -145,11 +130,8 @@ mod opts_design {
         let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "moe"]).unwrap();
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["moe"],
-            show_provider: false,
             show_url: true,
-            dict: None,
-            verbose: 0,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
@@ -158,11 +140,8 @@ mod opts_design {
         let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "dicts"]).unwrap();
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["dicts"],
-            show_provider: false,
             show_url: true,
-            dict: None,
-            verbose: 0,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
@@ -171,11 +150,8 @@ mod opts_design {
         let parsed_opts = Opts::try_parse_from(&["zd", "-v", "moe", "--verbose"]).unwrap();
         assert_eq!(parsed_opts, Opts {
             words: vec_of_strings!["moe"],
-            show_provider: false,
-            show_url: false,
-            dict: None,
             verbose: 2,
-            subcmd: None,
+            .. Default::default()
         });
     }
 
