@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use super::{Dict, Lookup, QueryError, QueryResult, SerdeResult};
+use super::{Dict, Lookup, QueryResult, SerdeResult};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,16 +34,16 @@ impl Lookup for Entry {
 
     fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
-    fn query(url: &str) -> QueryResult<Self> {
+    fn query(url: &str) -> QueryResult<Option<Self>> {
         let response = reqwest::blocking::get(url)?;
         let entry_string = response.text()?;
         let entry: Self = serde_json::from_str(entry_string.as_str())?;
 
         log::debug!("parsed entry: {:?}", entry);
         if entry.list.is_empty() {
-            return Err(QueryError::NotFound);
+            return Ok(None);
         }
-        Ok(entry)
+        Ok(Some(entry))
     }
 
     fn show(&self, _verbose: u8) {

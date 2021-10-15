@@ -44,27 +44,8 @@ struct Dict {
 }
 
 
-#[derive(Debug)]
-enum QueryError {
-    QueryFailure(String),
-    InvalidPayload(String),
-    NotFound,
-}
-
-impl From<reqwest::Error> for QueryError {
-    fn from(e: reqwest::Error) -> Self {
-        Self::QueryFailure(e.to_string())
-    }
-}
-
-impl From<serde_json::Error> for QueryError {
-    fn from(e: serde_json::Error) -> Self {
-        Self::InvalidPayload(e.to_string())
-    }
-}
-
-
-type QueryResult<T> = Result<T, QueryError>;
+type BoxError = Box<dyn std::error::Error>;
+type QueryResult<T> = Result<T, BoxError>;
 type SerdeResult<T> = serde_json::Result<T>;
 
 
@@ -77,7 +58,7 @@ trait Lookup {
 
     fn to_string(&self) -> SerdeResult<String> where Self: Sized;
 
-    fn query(url: &str) -> QueryResult<Self> where Self: Sized;
+    fn query(url: &str) -> QueryResult<Option<Self>> where Self: Sized;
 
     fn show(&self, verbose: u8);
 }
@@ -116,13 +97,9 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
 
     log::info!("query ⇒ {}", url);
     match Entry::query(url.as_str()) {
-        Err(QueryError::NotFound) =>
-            println!("\x1b[33m\"{}\" not found!\x1b[0m", word),
-        Err(err) => {
-            log::warn!("{:?}", err);
-            show_failure::<Entry>(word);
-        },
-        Ok(entry) => {
+        Err(err) => show_failure::<Entry>(err, word),
+        Ok(None) => println!("\x1b[33m\"{}\" not found!\x1b[0m", word),
+        Ok(Some(entry)) => {
             if let Ok(ser_entry) = entry.to_string() {
                 if let Some(cache) = db_cache {
                     if let Err(err) = cache.save(word, Entry::DICT.name, &ser_entry) {
@@ -135,14 +112,18 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
     };
 }
 
-fn show_failure<Entry: Lookup>(word: &str) {
+fn show_failure<Entry: Lookup>(err: BoxError, word: &str) {
+    let repo = "https://github.com/zdict/rust-zdict/";
+    let issues = format!("{}issues", repo);
     println!("\
+        {err:?}\n\
+        {err}\n\
         ================================================================================\n\
         Entryionary: {} ({})\n\
         Word: '{}'\n\
         ================================================================================\n\
         \n\
         Houston, we got a problem 😢\n\
-        Please report the error message above to https://github.com/zdict/zdict/issues\
-    ", Entry::DICT.title, Entry::DICT.name, word);
+        Please report the error message above to {}\
+    ", Entry::DICT.title, Entry::DICT.name, word, issues, err=err);
 }
