@@ -18,9 +18,9 @@ description = "Look up words via online dictionaries"
 # Will automatically link to the corresponding docs.rs page if not given.
 # Must set it because docs.rs only render libraries.
 # ref: https://doc.rust-lang.org/cargo/reference/manifest.html#the-documentation-field
-#documentation = ""
-#homepage = ""
-#repository = ""
+documentation = "https://github.com/zdict/rust-zdict"
+homepage = "https://github.com/zdict/rust-zdict"
+repository = "https://github.com/zdict/rust-zdict"
 
 
 [dependencies]

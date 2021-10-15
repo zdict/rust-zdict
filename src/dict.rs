@@ -113,17 +113,20 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
 }
 
 fn show_failure<Entry: Lookup>(err: BoxError, word: &str) {
-    let repo = "https://github.com/zdict/rust-zdict/";
-    let issues = format!("{}issues", repo);
     println!("\
         {err:?}\n\
         {err}\n\
         ================================================================================\n\
-        Entryionary: {} ({})\n\
-        Word: '{}'\n\
+        Entryionary: {dict_title} ({dict_name})\n\
+        Word: '{word}'\n\
         ================================================================================\n\
         \n\
         Houston, we got a problem 😢\n\
-        Please report the error message above to {}\
-    ", Entry::DICT.title, Entry::DICT.name, word, issues, err=err);
+        Please report the error message above to {issues}",
+        dict_title = Entry::DICT.title,
+        dict_name = Entry::DICT.name,
+        word = word,
+        issues = format!("{}/issues", env!("CARGO_PKG_REPOSITORY")),
+        err = err
+    );
 }
