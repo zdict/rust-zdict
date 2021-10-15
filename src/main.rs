@@ -1,12 +1,15 @@
 mod cli;
-mod dicts;
+mod dict;
+mod db;
 
 fn main() {
+    env_logger::init();
+
     let opts = cli::parse_opts();
 
     if opts.subcmd.is_some() {
-        dicts::list_dicts();
+        dict::list_dicts();
     } else {
-        dicts::use_dict(opts);
+        dict::lookup_words(opts, db::Cache::new());
     }
 }
