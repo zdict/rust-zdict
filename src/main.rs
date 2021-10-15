@@ -10,7 +10,6 @@ fn main() {
     if opts.subcmd.is_some() {
         dict::list_dicts();
     } else {
-        let db_cache = db::Cache::new();
-        dict::lookup_words(opts, db_cache);
+        dict::lookup_words(opts, db::Cache::new());
     }
 }

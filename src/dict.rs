@@ -14,11 +14,6 @@ macro_rules! register_dicts {
         }
 
         pub fn lookup_words(opts: Opts, db_cache: Option<Cache>) {
-            if db_cache.is_none() {
-                // TODO
-                println!("alert db cache unavailable")
-            }
-
             let dict_name = opts.dict.as_ref().map_or("yahoo", |n| n.as_str());
             let words = opts.words;
             let opts = Opts {
@@ -102,13 +97,13 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
         log::info!("bypass read cache");
     } else if let Some(cache) = db_cache {
         match cache.query(word, Entry::DICT.name) {
-            None => log::info!("cache not found"),
-            Some(cached) => {
+            Err(err) => log::error!("{}", err),
+            Ok(None) => log::info!("cache not found"),
+            Ok(Some(cached)) => {
                 match Entry::from_str(cached.as_str()) {
                     Err(err) => {
-                        log::warn!("unexpected fail to parse cached entry");
-                        log::debug!("cached: {}", cached);
-                        log::debug!("err: {:?}", err);
+                        log::warn!("{}", err);
+                        log::debug!("cached entry string: {}", cached);
                     },
                     Ok(entry) => {
                         entry.show(opts.verbose);
@@ -119,13 +114,20 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
         }
     }
 
-    // TODO: handle error and print/log out
+    log::info!("query ⇒ {}", url);
     match Entry::query(url.as_str()) {
-        Err(err) => show_failure::<Entry>(err, word),
+        Err(QueryError::NotFound) =>
+            println!("\x1b[33m\"{}\" not found!\x1b[0m", word),
+        Err(err) => {
+            log::warn!("{:?}", err);
+            show_failure::<Entry>(word);
+        },
         Ok(entry) => {
             if let Ok(ser_entry) = entry.to_string() {
                 if let Some(cache) = db_cache {
-                    cache.save(word, Entry::DICT.name, &ser_entry);
+                    if let Err(err) = cache.save(word, Entry::DICT.name, &ser_entry) {
+                        log::error!("{}", err);
+                    }
                 }
             }
             entry.show(opts.verbose);
@@ -133,18 +135,14 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
     };
 }
 
-fn show_failure<Entry: Lookup>(err: QueryError, word: &str) {
-    log::debug!("{:?}", err);
-    println!("{}", match err {
-        QueryError::NotFound => format!("\x1b[33m\"{}\" not found!\x1b[0m", word),
-        _ => format!("\
-            ================================================================================\n\
-            Entryionary: {} ({})\n\
-            Word: '{}'\n\
-            ================================================================================\n\
-            \n\
-            Houston, we got a problem 😢\n\
-            Please report the error message above to https://github.com/zdict/zdict/issues\
-        ", Entry::DICT.title, Entry::DICT.name, word),
-    });
+fn show_failure<Entry: Lookup>(word: &str) {
+    println!("\
+        ================================================================================\n\
+        Entryionary: {} ({})\n\
+        Word: '{}'\n\
+        ================================================================================\n\
+        \n\
+        Houston, we got a problem 😢\n\
+        Please report the error message above to https://github.com/zdict/zdict/issues\
+    ", Entry::DICT.title, Entry::DICT.name, word);
 }

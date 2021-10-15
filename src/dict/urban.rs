@@ -35,12 +35,11 @@ impl Lookup for Entry {
     fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
     fn query(url: &str) -> QueryResult<Self> {
-        log::debug!("url: {:?}", url);
-        log::info!("querying ...");
         let response = reqwest::blocking::get(url)?;
         let entry_string = response.text()?;
         let entry: Self = serde_json::from_str(entry_string.as_str())?;
-        log::trace!("entry: {:?}", entry);
+
+        log::debug!("parsed entry: {:?}", entry);
         if entry.list.is_empty() {
             return Err(QueryError::NotFound);
         }
@@ -48,7 +47,6 @@ impl Lookup for Entry {
     }
 
     fn show(&self, _verbose: u8) {
-        log::info!("show entry");
         let def = &self.list[0];
         println!("\x1b[33m{}\x1b[0m", def.word);
         println!("  \x1b[0m{}\x1b[0m", def.definition);
