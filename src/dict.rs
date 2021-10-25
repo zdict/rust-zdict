@@ -130,3 +130,47 @@ fn show_failure<Entry: Lookup>(err: BoxError, word: &str) {
         err = err
     );
 }
+
+
+#[tokio::main(flavor="current_thread")]
+pub async fn get_raw(url: &str) -> QueryResult<String> {
+    let spinner = indicatif::ProgressBar::new_spinner();
+    spinner.set_style(
+        indicatif::ProgressStyle::default_spinner()
+        .tick_strings(&[
+            "▹▹▹▹▹",
+            "▸▹▹▹▹",
+            "▹▸▹▹▹",
+            "▹▹▸▹▹",
+            "▹▹▹▸▹",
+            "▹▹▹▹▸",
+            "▪▪▪▪▪",
+        ])
+        .template("{spinner:.blue} {msg:.dim.white}")
+    );
+
+    struct Done;
+
+    let (sender, mut receiver) = tokio::sync::oneshot::channel();
+
+    let handle = tokio::spawn(async move {
+        let mut intv = tokio::time::interval(std::time::Duration::from_millis(125));
+        spinner.set_message("Querying...");
+        for _ in 0..8*3 {  // at least spin 3 second
+            intv.tick().await;
+            spinner.tick();
+        }
+        while receiver.try_recv().is_err() {
+            intv.tick().await;
+            spinner.tick();
+        }
+        //spinner.finish_and_clear();  // unnecessary since next output will overwrite it
+    });
+
+    let text = reqwest::get(url).await?.text().await?;
+
+    let _: Result<(), Done> = sender.send(Done);
+    handle.await?;
+
+    Ok(text)
+}
