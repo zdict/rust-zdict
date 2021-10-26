@@ -156,7 +156,7 @@ pub async fn get_raw(url: &str) -> QueryResult<String> {
     let handle = tokio::spawn(async move {
         let mut intv = tokio::time::interval(std::time::Duration::from_millis(125));
         spinner.set_message("Querying...");
-        for _ in 0..8*3 {  // at least spin 3 second
+        for _ in 0..8*1 {  // at least spin 1 second
             intv.tick().await;
             spinner.tick();
         }
