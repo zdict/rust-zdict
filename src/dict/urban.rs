@@ -45,7 +45,9 @@ impl Lookup for Entry {
     fn show(&self, _verbose: u8) {
         let def = &self.list[0];
         println!("\x1b[33m{}\x1b[0m", def.word);
-        println!("  \x1b[0m{}\x1b[0m", def.definition);
+        for line in def.definition.lines() {
+            println!("  \x1b[0m{}\x1b[0m", line);
+        }
         for line in def.example.lines() {
             println!("  \x1b[36m{}\x1b[0m", line);
         }
