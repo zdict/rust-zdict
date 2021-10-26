@@ -33,7 +33,7 @@ macro_rules! register_dicts {
             }
         }
     };
-} register_dicts! { yahoo, urban }
+} register_dicts! { yahoo, urban, jisho }
 
 
 #[derive(Debug)]
