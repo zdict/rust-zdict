@@ -35,7 +35,7 @@ pub struct Opts {
     //dicts: Vec<String>,
 
     #[clap(long, about = "Choose the dictionary")]
-    #[clap(possible_values = &["yahoo", "urban", "all"])]
+    #[clap(possible_values = &["yahoo", "urban", "jisho"])]
     //#[clap(default_value = "yahoo")]  // avoid default value to break `ArgRequiredElseHelp`
     pub dict: Option<String>,
 

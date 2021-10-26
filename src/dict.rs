@@ -33,7 +33,7 @@ macro_rules! register_dicts {
             }
         }
     };
-} register_dicts! { urban }
+} register_dicts! { yahoo, urban, jisho }
 
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ trait Lookup {
 
     fn to_string(&self) -> SerdeResult<String> where Self: Sized;
 
-    fn query(url: &str) -> QueryResult<Option<Self>> where Self: Sized;
+    fn query(raw: QueryResult<String>) -> QueryResult<Option<Self>> where Self: Sized;
 
     fn show(&self, verbose: u8);
 }
@@ -96,7 +96,7 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
     }
 
     log::info!("query ⇒ {}", url);
-    match Entry::query(url.as_str()) {
+    match Entry::query(get_raw(url.as_str())) {
         Err(err) => show_failure::<Entry>(err, word),
         Ok(None) => println!("\x1b[33m\"{}\" not found!\x1b[0m", word),
         Ok(Some(entry)) => {
@@ -129,4 +129,48 @@ fn show_failure<Entry: Lookup>(err: BoxError, word: &str) {
         issues = format!("{}/issues", env!("CARGO_PKG_REPOSITORY")),
         err = err
     );
+}
+
+
+#[tokio::main(flavor="current_thread")]
+pub async fn get_raw(url: &str) -> QueryResult<String> {
+    let spinner = indicatif::ProgressBar::new_spinner();
+    spinner.set_style(
+        indicatif::ProgressStyle::default_spinner()
+        .tick_strings(&[
+            "▹▹▹▹▹",
+            "▸▹▹▹▹",
+            "▹▸▹▹▹",
+            "▹▹▸▹▹",
+            "▹▹▹▸▹",
+            "▹▹▹▹▸",
+            "▪▪▪▪▪",
+        ])
+        .template("{spinner:.blue} {msg:.dim.white}")
+    );
+
+    struct Done;
+
+    let (sender, mut receiver) = tokio::sync::oneshot::channel();
+
+    let handle = tokio::spawn(async move {
+        let mut intv = tokio::time::interval(std::time::Duration::from_millis(125));
+        spinner.set_message("Querying...");
+        for _ in 0..8*3 {  // at least spin 3 second
+            intv.tick().await;
+            spinner.tick();
+        }
+        while receiver.try_recv().is_err() {
+            intv.tick().await;
+            spinner.tick();
+        }
+        //spinner.finish_and_clear();  // unnecessary since next output will overwrite it
+    });
+
+    let text = reqwest::get(url).await?.text().await?;
+
+    let _: Result<(), Done> = sender.send(Done);
+    handle.await?;
+
+    Ok(text)
 }
