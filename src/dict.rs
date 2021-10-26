@@ -33,7 +33,7 @@ macro_rules! register_dicts {
             }
         }
     };
-} register_dicts! { urban }
+} register_dicts! { yahoo, urban }
 
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ trait Lookup {
 
     fn to_string(&self) -> SerdeResult<String> where Self: Sized;
 
-    fn query(url: &str) -> QueryResult<Option<Self>> where Self: Sized;
+    fn query(raw: QueryResult<String>) -> QueryResult<Option<Self>> where Self: Sized;
 
     fn show(&self, verbose: u8);
 }
@@ -96,7 +96,7 @@ fn lookup<Entry: Lookup>(word: &str, opts: &Opts, db_cache: Option<&Cache>) {
     }
 
     log::info!("query ⇒ {}", url);
-    match Entry::query(url.as_str()) {
+    match Entry::query(get_raw(url.as_str())) {
         Err(err) => show_failure::<Entry>(err, word),
         Ok(None) => println!("\x1b[33m\"{}\" not found!\x1b[0m", word),
         Ok(Some(entry)) => {

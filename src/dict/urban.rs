@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use super::{Dict, Lookup, QueryResult, SerdeResult, get_raw};
+use super::{Dict, Lookup, QueryResult, SerdeResult};
 
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,11 +34,8 @@ impl Lookup for Entry {
 
     fn to_string(&self) -> SerdeResult<String> { serde_json::to_string(self) }
 
-    fn query(url: &str) -> QueryResult<Option<Self>> {
-        let entry_string = get_raw(url)?;
-        let entry: Self = serde_json::from_str(entry_string.as_str())?;
-
-        log::debug!("parsed entry: {:?}", entry);
+    fn query(entry_string: QueryResult<String>) -> QueryResult<Option<Self>> {
+        let entry: Self = serde_json::from_str(entry_string?.as_str())?;
         if entry.list.is_empty() {
             return Ok(None);
         }
