@@ -1,11 +1,12 @@
-use clap::{AppSettings, Clap};
+use clap::{AppSettings, Parser};
 
-#[derive(Clap, Debug, PartialEq, Default)]
+
+#[derive(clap::Parser, Debug, PartialEq, Default)]
 #[clap(name = "zdict")]
-//#[clap(version = env!("CARGO_PKG_VERSION"))]
+#[clap(version = env!("CARGO_PKG_VERSION"))]
 //#[clap(settings = &[AppSettings::ColoredHelp])]  // not support `setting *s*` yet
-#[clap(setting = AppSettings::ColoredHelp)]
-#[clap(setting = AppSettings::DisableVersionForSubcommands)]
+//#[clap(setting = AppSettings::ColoredHelp)]  // not support in beta.5
+//#[clap(setting = AppSettings::DisableVersionForSubcommands)]  // not support in beta.5
 #[clap(setting = AppSettings::DisableHelpSubcommand)]
 #[clap(setting = AppSettings::ArgRequiredElseHelp)]  // works fine unlike yaml version
 #[clap(setting = AppSettings::ArgsNegateSubcommands)]
@@ -35,7 +36,7 @@ pub struct Opts {
     //dicts: Vec<String>,
 
     #[clap(long, about = "Choose the dictionary")]
-    #[clap(possible_values = &["yahoo", "urban", "jisho"])]
+    #[clap(possible_values = crate::dict::DICTS)]
     //#[clap(default_value = "yahoo")]  // avoid default value to break `ArgRequiredElseHelp`
     pub dict: Option<String>,
 
@@ -50,248 +51,10 @@ pub struct Opts {
     pub subcmd: Option<SubCommand>,
 }
 
-#[derive(Clap, Debug, PartialEq)]
+#[derive(Parser, Debug, PartialEq)]
 pub enum SubCommand {
     #[clap(name = "dicts", about = "Show currently supported dictionaries")]
     ListDicts,
 }
 
 pub fn parse_opts() -> Opts { Opts::parse() }
-
-/* ================================================== */
-
-pub use clap::{App, load_yaml};
-
-#[allow(unused)] macro_rules! get_matches {
-    () => { $crate::cli::App::from($crate::cli::load_yaml!("args.yaml")).get_matches() }
-} #[allow(unused)] pub(crate) use get_matches;
-
-/* ================================================== */
-
-#[cfg(test)]
-mod opts_design {
-    use super::*;
-
-    macro_rules! vec_of_strings {
-        ($($x:expr),*) => { vec![$($x.to_string()),*] };
-    } pub(super) use vec_of_strings;
-
-    #[test]
-    fn display_help_when_no_arguments() {
-        let err = Opts::try_parse_from(&["zd"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
-    }
-
-    #[test]
-    fn list_dict() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "dicts"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            subcmd: Some(SubCommand::ListDicts),
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn require_words() {
-        let err = Opts::try_parse_from(&["zd", "-v"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::MissingRequiredArgument);
-    }
-
-    #[test]
-    fn given_one_word() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "moe"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["moe"],
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn given_three_words() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "moe", "moe", "moe"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["moe", "moe", "moe"],
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn set_flag_after_word() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "moe", "--show-provider"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["moe"],
-            show_provider: true,
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn set_flag_before_word() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "moe"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["moe"],
-            show_url: true,
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn set_flag_before_word_as_subcommand() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "--show-url", "dicts"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["dicts"],
-            show_url: true,
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn enable_verbose() {
-        let parsed_opts = Opts::try_parse_from(&["zd", "-v", "moe", "--verbose"]).unwrap();
-        assert_eq!(parsed_opts, Opts {
-            words: vec_of_strings!["moe"],
-            verbose: 2,
-            .. Default::default()
-        });
-    }
-
-    #[test]
-    fn reject_too_many_verbose() {
-        let err = Opts::try_parse_from(&["zd", "-vv", "moe", "--verbose"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::TooManyOccurrences);
-    }
-
-    #[test]
-    fn not_allow_arguments_after_subcommand() {
-        let err = Opts::try_parse_from(&["zd", "dicts", "--verbose"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::UnknownArgument);
-    }
-}
-
-#[cfg(test)]
-mod yaml_design {
-    use super::*;
-    use super::opts_design::vec_of_strings;
-
-    macro_rules! try_get_matches_from {
-        ($cmd:expr) => {
-            App::from(load_yaml!("args.yaml")).try_get_matches_from($cmd)
-        }
-    }
-
-    #[test]
-    #[ignore = "not supported"]
-    fn display_help_when_no_arguments() {
-        let err = try_get_matches_from!(&["zd"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
-    }
-
-    #[test]
-    fn list_dict() {
-        let mats = try_get_matches_from!(&["zd", "dicts"]).unwrap();
-        assert!(!mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(!mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_some());
-    }
-
-    #[test]
-    fn require_words() {
-        let err = try_get_matches_from!(&["zd", "-v"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::MissingRequiredArgument);
-    }
-
-    #[test]
-    fn given_one_word() {
-        let mats = try_get_matches_from!(&["zd", "moe"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(!mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["moe"]);
-    }
-
-    #[test]
-    fn given_three_words() {
-        let mats = try_get_matches_from!(&["zd", "moe", "moe", "moe"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(!mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["moe", "moe", "moe"]);
-    }
-
-    #[test]
-    fn set_flag_after_word() {
-        let mats = try_get_matches_from!(&["zd", "moe", "--show-provider"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(mats.is_present("show provider"));
-        assert!(!mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["moe"]);
-    }
-
-    #[test]
-    fn set_flag_before_word() {
-        let mats = try_get_matches_from!(&["zd", "--show-url", "moe"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["moe"]);
-    }
-
-    #[test]
-    fn set_flag_before_word_as_subcommand() {
-        let mats = try_get_matches_from!(&["zd", "--show-url", "dicts"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(mats.is_present("show url"));
-        assert!(!mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["dicts"]);
-    }
-
-    #[test]
-    fn enable_verbose() {
-        let mats = try_get_matches_from!(&["zd", "-v", "moe", "--verbose"]).unwrap();
-        assert!(mats.is_present("words"));
-        assert!(!mats.is_present("show provider"));
-        assert!(!mats.is_present("show url"));
-        assert!(mats.is_present("verbose"));
-        assert!(mats.subcommand_matches("dicts").is_none());
-
-        let words: Vec<&str> = mats.values_of("words").unwrap().collect();
-        assert_eq!(words, vec_of_strings!["moe"]);
-
-        assert_eq!(mats.occurrences_of("verbose"), 2);
-    }
-
-    #[test]
-    #[ignore = "not supported"]
-    fn reject_too_many_verbose() {
-        let err = try_get_matches_from!(&["zd", "-vv", "moe", "--verbose"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::TooManyOccurrences);
-    }
-
-    #[test]
-    fn not_allow_arguments_after_subcommand() {
-        let err = try_get_matches_from!(&["zd", "dicts", "--verbose"]).unwrap_err();
-        assert_eq!(err.kind, clap::ErrorKind::UnknownArgument);
-    }
-}
