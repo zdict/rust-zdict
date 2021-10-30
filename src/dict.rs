@@ -3,8 +3,10 @@ use crate::db::Cache;
 
 
 macro_rules! register_dicts {
-    ($($d:ident),+) => {
+    ($len:expr, $($d:ident),+) => {
         $( mod $d; )+
+
+        pub const DICTS: [&str;$len] = [$(stringify!($d),)+];
 
         pub fn list_dicts() {
             $(
@@ -33,7 +35,7 @@ macro_rules! register_dicts {
             }
         }
     };
-} register_dicts! { yahoo, urban, jisho }
+} register_dicts! { 3, yahoo, urban, jisho }
 
 
 #[derive(Debug)]
