@@ -12,15 +12,15 @@ use clap::{AppSettings, Parser};
 #[clap(setting = AppSettings::ArgsNegateSubcommands)]
 #[clap(setting = AppSettings::SubcommandsNegateReqs)]
 pub struct Opts {
-    #[clap(about = "Search translation of words")]
+    #[clap(help = "Search translation of words")]
     #[clap(value_name = "word")]
     #[clap(required = true)]
     pub words: Vec<String>,
 
-    #[clap(long, about = "Show dictionary provider")]
+    #[clap(long, help = "Show dictionary provider")]
     pub show_provider: bool,
 
-    #[clap(long, about = "Show URL")]
+    #[clap(long, help = "Show URL")]
     pub show_url: bool,
 
     // broken: it consumes all following input until next flag
@@ -35,16 +35,16 @@ pub struct Opts {
     //)]
     //dicts: Vec<String>,
 
-    #[clap(long, about = "Choose the dictionary")]
+    #[clap(long, help = "Choose the dictionary")]
     #[clap(possible_values = crate::dict::DICTS)]
     //#[clap(default_value = "yahoo")]  // avoid default value to break `ArgRequiredElseHelp`
     pub dict: Option<String>,
 
-    #[clap(short, long, about = "Use verbose output")]
+    #[clap(short, long, help = "Use verbose output")]
     #[clap(max_occurrences=2, parse(from_occurrences))]
     pub verbose: u8,
 
-    #[clap(short, long, about = "Temporarily not using the result from db cache. (still save the result into db)")]
+    #[clap(short, long, help = "Temporarily not using the result from db cache. (still save the result into db)")]
     pub disable_db_cache: bool,
 
     #[clap(subcommand)]
@@ -53,7 +53,7 @@ pub struct Opts {
 
 #[derive(Parser, Debug, PartialEq)]
 pub enum SubCommand {
-    #[clap(name = "dicts", about = "Show currently supported dictionaries")]
+    #[clap(name = "dicts", help = "Show currently supported dictionaries")]
     ListDicts,
 }
 
